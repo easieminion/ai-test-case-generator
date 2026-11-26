@@ -3,6 +3,7 @@ from __future__ import annotations
 
 SUITE_TOOL = "submit_test_suite"
 DRAFT_TOOL = "submit_test"
+FIX_TOOL = "submit_fixed_test"
 
 _TEST_ITEM_SCHEMA = {
     "type": "object",
@@ -41,6 +42,21 @@ SUITE_SCHEMA = {
         "tests": {"type": "array", "items": _TEST_ITEM_SCHEMA},
     },
     "required": ["tests"],
+}
+
+FIX_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "code": {
+            "type": "string",
+            "description": "The corrected test BODY ONLY (no def/test() wrapper), same intent as before.",
+        },
+        "change_note": {
+            "type": "string",
+            "description": "One sentence: what was wrong and what you changed.",
+        },
+    },
+    "required": ["code", "change_note"],
 }
 
 LANGUAGE_RULES = {
@@ -163,4 +179,20 @@ def build_bug_prompt(ctx: dict) -> str:
         ctx.get("test", ""), "",
         "=== ERROR OUTPUT ===", ctx.get("error_output", ""), "",
         "Write the bug report.",
+    ])
+
+
+def build_fix_prompt(requirements: str, language: str, source_code: str, title: str,
+                     explanation: str, code: str, error: str) -> str:
+    return "\n".join([
+        LANGUAGE_RULES[language], "",
+        "=== REQUIREMENTS ===", requirements.strip(), "",
+        "=== CODE UNDER TEST (module `solution`) ===", source_code.rstrip() or "(not available)", "",
+        f"=== BROKEN TEST: {title} ===",
+        f"Explanation: {explanation or '(none)'}",
+        "Body:", code.rstrip(), "",
+        "=== ERROR ===", error.strip(), "",
+        "This test body does not parse. Fix ONLY the syntax so it runs. Keep the same intent, "
+        "assertions and expected values; do not change what the test checks, and do not make it "
+        "pass by weakening it. Return the corrected body in `code`.",
     ])

@@ -162,3 +162,24 @@ def test_bug_report_wording_uses_forced_tool_and_sends_the_failure(stub):
     assert "['too_long']" in body["messages"][0]["content"] and out["title"].startswith("64-char")
     with pytest.raises(LLMError):
         OfflineDemoProvider().write_bug_report({})
+
+def test_fix_test_sends_error_and_returns_code(stub):
+    from testgen.models import TestCase
+    s = stub([tool_reply("submit_fixed_test", {"code": "assert solution.add(1, 2) == 3", "change_note": "closed paren"})])
+    broken = TestCase(category="positive", title="adds", code="assert solution.add(1, 2 == 3")
+    fix = AnthropicProvider("k", base_url=s.url).fix_test("R1", "python", "code", broken, "Invalid Python (line 1): '(' was never closed")
+    assert fix.code == "assert solution.add(1, 2) == 3" and fix.note == "closed paren"
+    body = s.requests[0]["body"]
+    assert body["tool_choice"]["name"] == "submit_fixed_test"
+    assert "was never closed" in body["messages"][0]["content"]
+
+
+def test_demo_fixer_handles_simple_cases_and_refuses_the_rest():
+    from testgen.models import TestCase
+    p = OfflineDemoProvider()
+    colon = TestCase(category="edge", title="t", code="r = solution.f()\nif r\n    assert r")
+    assert "if r:" in p.fix_test("", "python", "", colon, "").code
+    js = TestCase(category="edge", title="t", code="assert.equal(solution.f(1), 2;")
+    assert p.fix_test("", "javascript", "", js, "").code == "assert.equal(solution.f(1), 2);"
+    with pytest.raises(LLMError, match="ANTHROPIC_API_KEY"):
+        p.fix_test("", "python", "", TestCase(category="edge", title="t", code="def (:::"), "")
