@@ -10,6 +10,8 @@ from testgen.samples import SAMPLES
 from tests.test_llm import Stub, tool_reply
 
 SAMPLE = SAMPLES["password_validator"]["requirements"]
+# the sample has a deliberately vague R7 for the demo; without it every requirement is clear
+SAMPLE_CLEAN = "\n".join(l for l in SAMPLE.splitlines() if not l.startswith("R7"))
 
 VAGUE = """Profile headline
 R1. The profile page should load fast.
@@ -44,11 +46,16 @@ def test_split_numbered_bullets_continuations_and_plain_text():
 
 
 # ---------------------------------------------------------------- rules
-def test_bundled_sample_is_clean():
+def test_bundled_sample_flags_only_the_planted_vague_requirement():
     a = rule_based_analysis(SAMPLE)
     sm = a.summary()
-    assert sm["requirements"] == 6 and sm["issues"] == 0 and sm["clear"] == 6
+    assert sm["requirements"] == 7 and sm["clear"] == 6 and sm["contradictions"] == 0
+    r7 = by_id(a, "R7")
+    assert r7.status == "needs_clarification" and {"vague", "ambiguous"} <= types(r7)
+    assert any(i.severity == "high" and "user-friendly" in i.problem for i in r7.issues)
     assert a.engine == "rules"
+    clean = rule_based_analysis(SAMPLE_CLEAN).summary()
+    assert clean["requirements"] == 6 and clean["issues"] == 0 and clean["clear"] == 6
 
 
 def test_vague_words_weak_modals_and_open_lists():
@@ -118,7 +125,7 @@ def test_markdown_puts_questions_first_and_numbers_them():
     assert md.startswith("## Requirement clarification questions")
     assert md.index("### Conflicts between requirements") < md.index("### Questions by requirement") < md.index("### General")
     assert "1. **R3, R4**" in md and "<details>" in md
-    clean = to_markdown(rule_based_analysis(SAMPLE))
+    clean = to_markdown(rule_based_analysis(SAMPLE_CLEAN))
     assert "look specific and testable" in clean
 
 
@@ -192,4 +199,5 @@ def test_cli_analyze(tmp_path, capsys, monkeypatch):
     assert cli.main(["-r", str(f), "--analyze"]) == 1                     # high-severity issues found
     out = capsys.readouterr().out
     assert out.startswith("## Requirement clarification questions")    # stdout is pure Markdown
-    assert cli.main(["--sample", "--analyze"]) == 0
+    assert cli.main(["--sample", "--analyze"]) == 1                     # the planted vague R7
+    assert "**R7**" in capsys.readouterr().out

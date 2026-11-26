@@ -8,16 +8,20 @@
 
 An LLM drafts test cases in **Python (pytest) or JavaScript (node:test)**, ordered positive → negative → edge, each tied to a requirement and explained in a comment. You review and edit them, then the app runs them, measures coverage, and writes a **PDF, Word or HTML** report with charts.
 
-![Demo: load the sample, generate tests, run them with coverage, download the report](examples/demo.gif)
+![Demo: check the requirements, generate and run tests, fix a broken test with AI, create a bug report, download the report](examples/demo.gif)
 
-In the demo, the sample password validator has a deliberate off-by-one bug. The generated edge-case test *"Exactly 64 characters is accepted"* catches it: 14 passed, 1 failed, 96.2% statement coverage.
+The demo runs offline on the bundled password-validator sample, which has three planted problems so every feature has something to do:
+
+1. **Check requirements** flags R7 (*"Error messages should be user-friendly."*) as vague before any test is written, suggests testable wording and drafts questions for the team.
+2. One generated test has a syntax error. **Fix with AI** shows the fix as a diff, *Apply and rerun* makes it pass, and *Undo AI fix* is one click away.
+3. The implementation has an off-by-one bug. The edge-case test *"Exactly 64 characters is accepted"* catches it (15 passed, 1 failed, 96.2% statement coverage) and **Create bug report** turns the failure into a ticket you can paste into JIRA or GitHub.
 
 ## Try it in 30 seconds (no API key needed)
 
 ```bash
 git clone https://github.com/easieminion/ai-test-case-generator && cd ai-test-case-generator
 pip install -r requirements.txt
-python app.py                  # open http://127.0.0.1:5000, click Load sample → Generate tests → Run tests
+python app.py                  # open http://127.0.0.1:5000, click Load sample → Check requirements → Generate tests → Run tests
 ```
 
 Without `ANTHROPIC_API_KEY` the app runs in a clearly labelled **offline demo mode** that replays a canned suite for the bundled sample, so everything above works offline. Set the key to generate tests for your own requirements.
@@ -27,7 +31,9 @@ Without `ANTHROPIC_API_KEY` the app runs in a clearly labelled **offline demo mo
 - **A human stays in the loop.** AI can write wrong tests, so nothing runs until you have reviewed, edited, added or deleted tests.
 - **Traceability.** Every test names the requirement it covers, and the report lists them side by side.
 - **Real execution, not just generated text.** Tests run in a subprocess with a timeout; results are `passed`, `failed` or `error`, and one broken test never takes down the run.
+- **Questions before tests.** *Check requirements* flags vague, untestable or contradictory requirements and drafts clarifying questions, so tests are not built on guesses.
 - **AI fixes are reviewed too.** A test that breaks with a syntax error gets a *Fix with AI* suggestion shown as a diff; nothing is saved until you apply it, and you can undo it.
+- **Failures become tickets.** A real failure gets a ready-to-file bug report with reproduction steps and expected vs actual; nothing is filed for you.
 - **Evidence you can hand over.** Each run is snapshotted into a report with outcome charts, coverage, timings and failure details.
 
 <details>
@@ -58,6 +64,7 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
 | What you need | How the app handles it |
 |---|---|
 | User inputs requirements | Web UI textarea, `--requirements file`, or `$EDITOR` in the CLI |
+| Check requirements first | **Check requirements** flags vague, untestable or contradictory requirements, suggests wording and drafts clarifying questions (`--analyze` in the CLI). See below |
 | Requirements sent to the LLM | `testgen/llm.py` calls the Anthropic Messages API with a forced tool call, so the answer is structured JSON, not scraped text |
 | Tests in the chosen language | Python (pytest) or JavaScript (Node's built-in `node:test`) |
 | Explanation as a comment per test | Every test is rendered with `# [P1] title / Requirement / Explanation` (or `//` in JS) |
@@ -65,6 +72,7 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
 | Update the requirements | Edit the text and regenerate; manual tests are kept (checkbox) |
 | Add missing tests | "Add a test" form, or describe the gap and let the LLM draft it for review |
 | Fix broken tests | A test that fails with a syntax error gets a **Fix with AI** button in the results: you see the suggested fix as a diff, can edit it, and it is only saved when you click *Apply and rerun*. *Undo AI fix* puts the old code back (one step; editing the test yourself clears it) |
+| Report real bugs | A real failure gets **Create bug report**: title, severity, steps to reproduce, expected vs actual, as Markdown or JIRA markup (`--bug-reports` in the CLI). See below |
 | Coverage report | Statement coverage of the code under test, missed lines listed |
 | Report type, default PDF | Dropdown / `--format`; PDF if you do not choose |
 | Charts + detail | Pass/fail/error per category, coverage, per-test timing, failure details, requirement per test, code and test source in appendices |
@@ -85,7 +93,7 @@ python -m pytest tests -q              # the project's own tests
 
 **Code under test.** Optionally paste/upload your code; it is imported as `solution`. If you leave it empty the LLM writes a reference implementation in the same call (the report says who wrote the code). Testing code the model also wrote proves less than testing your own, so supply your code for real work.
 
-**No API key?** The app falls back to an *offline demo provider* that replays a canned suite for the bundled password-validator sample. It is clearly labelled in the UI and in every report. In this mode *Fix with AI* uses simple rules instead (missing `:`, unclosed brackets, JavaScript syntax in Python) and says so; anything harder needs an API key. The sample implementation contains a deliberate off-by-one bug, so the report shows a real failing edge case.
+**No API key?** The app falls back to an *offline demo provider* that replays a canned suite for the bundled password-validator sample. It is clearly labelled in the UI and in every report. In this mode *Fix with AI* uses simple rules instead (missing `:`, unclosed brackets, JavaScript syntax in Python) and says so; anything harder needs an API key. The sample is built to show every feature: R7 is deliberately vague (for *Check requirements*), one canned test has a deliberate syntax error (for *Fix with AI*), and the implementation has a deliberate off-by-one bug, so the report shows a real failing edge case (for *Create bug report*). Re-record the demo with `scripts/record_demo.js` and `scripts/build_demo.py`.
 
 ## Check requirements before generating tests
 
@@ -145,6 +153,7 @@ testgen/runtime/          pytest plugin (tracer), node reporter testgen/reportin
 testgen/repair.py         rule-based syntax fixes (demo mode)   testgen/bugreport.py bug reports for real failures
 testgen/analyzer.py       requirement check (rules + LLM), clarifying questions as Markdown
 web/index.html            single-page UI                        tests/              pytest suite
+scripts/                  record the README demo GIF/MP4 (Playwright + ffmpeg)
 ```
 
 ## License

@@ -198,7 +198,7 @@ class OfflineDemoProvider(LLMProvider):
         return any(m in low for m in sample.SAMPLE_MARKERS)
 
     def _filter(self, requirements: str):
-        """Only keep canned tests whose requirement id (R1..R6) is still in the text."""
+        """Only keep canned tests whose requirement id (R1, R2, ...) is still in the text."""
         present = set(re.findall(r"^\s*(R\d+)\b", requirements, flags=re.M))
         return present
 
@@ -216,7 +216,7 @@ class OfflineDemoProvider(LLMProvider):
             for t in canned if not present or t["req_id"] in present
         ]
         warnings = ["Offline demo mode: these tests are canned, not AI generated."]
-        if present and len(present) < 6:
+        if present and {t["req_id"] for t in canned} - present:
             warnings.append("Tests for requirements you removed were dropped. New requirements "
                             "cannot be turned into tests without an API key.")
         if not tests:
