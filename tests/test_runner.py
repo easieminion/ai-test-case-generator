@@ -101,10 +101,12 @@ def test_sample_end_to_end_both_languages(tmp_path, language, expected_cov):
     sm = runner.summarise(run)
     cats = sm["categories"]
     assert cats["positive"]["passed"] == cats["positive"]["total"] == 4
-    assert cats["negative"]["passed"] == cats["negative"]["total"] == 5
+    assert cats["negative"]["total"] == 6 and cats["negative"]["passed"] == 5
+    assert cats["negative"]["error"] == 1                                     # the planted syntax error
     assert cats["edge"]["total"] == 6 and cats["edge"]["failed"] == 1       # the planted bug is found
-    failing = [t for t in run.tests if t.status != "passed"]
-    assert [t.title for t in failing] == ["Exactly 64 characters is accepted"]
+    failing = [(t.title, t.status) for t in run.tests if t.status != "passed"]
+    assert failing == [("Password without a special character is rejected", "error"),
+                       ("Exactly 64 characters is accepted", "failed")]
     assert run.coverage[0].covered_statements == expected_cov
     assert run.coverage[0].missed_lines                                       # describe_errors never called
 

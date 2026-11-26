@@ -70,8 +70,8 @@ def test_report_counts_match_run(run):
     from testgen.reporting.common import build_context
     s, r = run
     ctx = build_context(r, s.id)
-    assert ctx.summary["total"] == len(r.tests) == 16
-    assert "15 of 16 tests passed; 1 failed" in ctx.verdict
+    assert ctx.summary["total"] == len(r.tests) == 17
+    assert "15 of 17 tests passed; 1 failed" in ctx.verdict
 
 
 def test_all_passing_run_and_no_coverage_still_build(tmp_path):

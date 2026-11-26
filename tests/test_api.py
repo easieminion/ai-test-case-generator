@@ -30,7 +30,7 @@ def test_full_workflow_matches_the_brief(c):
     assert r.status_code == 201
     # run
     run = c.post(f"/api/sessions/{sid}/run").get_json()["session"]
-    assert len(run["runs"][-1]["tests"]) == 16 and run["tests_changed_since_run"] is False
+    assert len(run["runs"][-1]["tests"]) == 17 and run["tests_changed_since_run"] is False
     # 1. requirements updated -> regenerated, manual test kept, run is now stale, and code still exists
     reduced = "\n".join(l for l in REQ.splitlines() if not l.startswith("R6"))
     r = c.put(f"/api/sessions/{sid}/requirements", json={"requirements": reduced})
@@ -102,7 +102,8 @@ def test_syntax_error_can_be_fixed_after_review(c):
     run = c.post(f"/api/sessions/{sid}/run").get_json()["session"]["runs"][-1]
     row = next(t for t in run["tests"] if t["uid"] == uid)
     assert row["status"] == "error" and row["syntax_error"] is True
-    assert not any(t["syntax_error"] for t in run["tests"] if t["uid"] != uid)
+    others = [t["title"] for t in run["tests"] if t["uid"] != uid and t["syntax_error"]]
+    assert others == [PLANTED]                         # only the sample's own planted error
 
     fix = c.post(f"/api/sessions/{sid}/tests/{uid}/fix").get_json()["fix"]
     assert fix["original"] == broken and fix["still_invalid"] == "" and "not AI" in fix["note"]
@@ -117,6 +118,33 @@ def test_syntax_error_can_be_fixed_after_review(c):
     assert next(t for t in rerun["tests"] if t["uid"] == uid)["status"] == "passed"
     # a test that parses has nothing to fix
     assert c.post(f"/api/sessions/{sid}/tests/{uid}/fix").status_code == 400
+
+
+PLANTED = "Password without a special character is rejected"
+
+
+@pytest.mark.parametrize("language", ["python", "javascript"])
+def test_sample_demo_tour_fix_then_bug_report(c, language):
+    """The bundled sample shows each feature offline: syntax error -> Fix -> Undo, and a bug report."""
+    s = create(c, language)
+    sid = s["id"]
+    run = c.post(f"/api/sessions/{sid}/run").get_json()["session"]["runs"][-1]
+    broken = next(t for t in run["tests"] if t["title"] == PLANTED)
+    assert broken["status"] == "error" and broken["syntax_error"] is True
+    uid = broken["uid"]
+    fix = c.post(f"/api/sessions/{sid}/tests/{uid}/fix").get_json()["fix"]
+    assert fix["still_invalid"] == "" and "not AI" in fix["note"]
+    c.post(f"/api/sessions/{sid}/tests/{uid}/fix/apply", json={"code": fix["code"]})
+    rerun = c.post(f"/api/sessions/{sid}/run").get_json()["session"]["runs"][-1]
+    statuses = {t["title"]: t["status"] for t in rerun["tests"]}
+    assert statuses[PLANTED] == "passed"
+    assert [k for k, v in statuses.items() if v != "passed"] == ["Exactly 64 characters is accepted"]
+    bug_uid = next(t["uid"] for t in rerun["tests"] if t["status"] == "failed")
+    rep = c.post(f"/api/sessions/{sid}/bug-report", json={"uid": bug_uid})
+    assert rep.status_code == 200
+    undone = c.post(f"/api/sessions/{sid}/tests/{uid}/fix/undo").get_json()["session"]
+    back = next(t for t in undone["tests"] if t["uid"] == uid)
+    assert back["code"] != fix["code"] and back["previous_code"] == ""
 
 
 def test_applied_fix_can_be_undone_once(c):

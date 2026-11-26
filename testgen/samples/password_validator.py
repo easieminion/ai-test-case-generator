@@ -1,7 +1,14 @@
 """Bundled sample used by the *offline demo provider* and the "Load sample" button.
 
-The demo implementation contains one DELIBERATE off-by-one bug (upper length bound),
-so the sample report shows what a failing edge-case test looks like.
+It is built to show every feature in offline demo mode:
+
+* R7 is DELIBERATELY vague ("should", "user-friendly"), so *Check requirements* has
+  something to flag and a rewrite to suggest. No canned test covers it.
+* One canned negative test has a DELIBERATE syntax error (Python: a missing ':',
+  JavaScript: an unclosed bracket), so the run shows an ``error`` and *Fix with AI*
+  (rule-based in demo mode) can repair it, with *Undo AI fix* to go back.
+* The implementation contains one DELIBERATE off-by-one bug (upper length bound), so
+  a real edge-case test fails and *Create bug report* has a real failure to report.
 """
 
 SAMPLE_ID = "password_validator"
@@ -20,6 +27,7 @@ R6. It returns {"valid": bool, "errors": [codes]} using the codes too_short, too
     no_upper, no_lower, no_digit, no_special, has_whitespace, common_password.
     All problems are reported, not just the first. A non-string input raises a
     TypeError.
+R7. Error messages should be user-friendly.
 """
 
 PY_SOURCE = '''\
@@ -181,6 +189,16 @@ result = solution.validate_password("lowercase1!")
 assert result["valid"] is False
 assert result["errors"] == ["no_upper"]''',
        "R2 uppercase"),
+    _t("R3", "negative", "Password without a special character is rejected",
+       "Both passwords meet every other rule, so 'no_special' must be the only error. "
+       "(This canned test has a deliberate syntax error, a missing ':', so the demo can "
+       "show Fix with AI.)",
+       '''\
+for password in ("Abcdefg1", "ABCdef12")
+    result = solution.validate_password(password)
+    assert result["valid"] is False
+    assert result["errors"] == ["no_special"]''',
+       "R3 special character required"),
     _t("R4", "negative", "Password containing whitespace is rejected",
        "A space in the middle of an otherwise strong password must raise "
        "'has_whitespace' and nothing else.",
@@ -310,6 +328,15 @@ const result = solution.validatePassword('lowercase1!');
 assert.equal(result.valid, false);
 assert.deepEqual(result.errors, ['no_upper']);''',
        "R2 uppercase"),
+    _t("R3", "negative", "Password without a special character is rejected",
+       "'Abcdefg1' meets every other rule, so 'no_special' must be the only error. "
+       "(This canned test has a deliberate syntax error, an unclosed bracket, so the demo "
+       "can show Fix with AI.)",
+       '''\
+const result = solution.validatePassword('Abcdefg1');
+assert.equal(result.valid, false);
+assert.deepEqual(result.errors, ['no_special'];''',
+       "R3 special character required"),
     _t("R4", "negative", "Password containing whitespace is rejected",
        "A space in the middle of an otherwise strong password must raise "
        "'has_whitespace' and nothing else.",
