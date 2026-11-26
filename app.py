@@ -259,7 +259,7 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
 
 
 def main():
-    ap = argparse.ArgumentParser(description="AI Test Case Generator - web UI")
+    ap = argparse.ArgumentParser(description="SpecProof - web UI")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 5000)))
     ap.add_argument("--data-dir", default=None)

@@ -57,7 +57,7 @@ def python_body(test: TestCase) -> str:
 
 def _py_header(session: Session) -> List[str]:
     return [
-        '"""Automatically generated tests (AI Test Case Generator).',
+        '"""Automatically generated tests (SpecProof).',
         "",
         f"Session {session.id} | language: python | runner: pytest",
         "Order: Positive -> Negative -> Edge case. Each test is explained in a comment.",
@@ -97,7 +97,7 @@ def render_javascript(session: Session, skip: Iterable[str] = ()) -> Tuple[str, 
     labels = session.labels()
     out = [
         "'use strict';",
-        "// Automatically generated tests (AI Test Case Generator).",
+        "// Automatically generated tests (SpecProof).",
         f"// Session {session.id} | language: javascript | runner: node:test",
         "// Order: Positive -> Negative -> Edge case. Each test is explained in a comment.",
         "const { test } = require('node:test');",

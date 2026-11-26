@@ -1,10 +1,43 @@
-# AI Test Case Generator with Automated Execution
+# SpecProof: AI Test Case Generator with Automated Execution
 
-Paste requirements → an LLM writes the tests in **Python or JavaScript** → the tests run automatically with a **coverage report** → you get a **PDF** (or Word / HTML) report with charts.
+[![tests](https://github.com/easieminion/ai-test-case-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/easieminion/ai-test-case-generator/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+**Paste requirements. Get reviewed, executed tests with coverage and a PDF report.**
+
+An LLM drafts test cases in **Python (pytest) or JavaScript (node:test)**, ordered positive → negative → edge, each tied to a requirement and explained in a comment. You review and edit them, then the app runs them, measures coverage, and writes a **PDF, Word or HTML** report with charts.
+
+![Demo: load the sample, generate tests, run them with coverage, download the report](examples/demo.gif)
+
+In the demo, the sample password validator has a deliberate off-by-one bug. The generated edge-case test *"Exactly 64 characters is accepted"* catches it: 14 passed, 1 failed, 96.2% statement coverage.
+
+## Try it in 30 seconds (no API key needed)
+
+```bash
+git clone https://github.com/easieminion/ai-test-case-generator && cd ai-test-case-generator
+pip install -r requirements.txt
+python app.py                  # open http://127.0.0.1:5000, click Load sample → Generate tests → Run tests
+```
+
+Without `ANTHROPIC_API_KEY` the app runs in a clearly labelled **offline demo mode** that replays a canned suite for the bundled sample, so everything above works offline. Set the key to generate tests for your own requirements.
+
+## Why it's built this way (a QA view)
+
+- **A human stays in the loop.** AI can write wrong tests, so nothing runs until you have reviewed, edited, added or deleted tests.
+- **Traceability.** Every test names the requirement it covers, and the report lists them side by side.
+- **Real execution, not just generated text.** Tests run in a subprocess with a timeout; results are `passed`, `failed` or `error`, and one broken test never takes down the run.
+- **AI fixes are reviewed too.** A test that breaks with a syntax error gets a *Fix with AI* suggestion shown as a diff; nothing is saved until you apply it, and you can undo it.
+- **Evidence you can hand over.** Each run is snapshotted into a report with outcome charts, coverage, timings and failure details.
+
+<details>
+<summary>More screenshots</summary>
 
 ![Home](examples/ui-0-home.png)
 ![Review tests](examples/ui-1-review-tests.png)
 ![Results with inspection stamp and coverage](examples/ui-2-results-coverage.png)
+
+</details>
 
 Sample reports: [`examples/python/sample-report.pdf`](examples/python/sample-report.pdf) · [`examples/javascript/sample-report.pdf`](examples/javascript/sample-report.pdf)
 
@@ -20,7 +53,9 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
                                        report: choose PDF (default) / DOCX / HTML
 ```
 
-| Your requirement | How it is met |
+## Features
+
+| What you need | How the app handles it |
 |---|---|
 | User inputs requirements | Web UI textarea, `--requirements file`, or `$EDITOR` in the CLI |
 | Requirements sent to the LLM | `testgen/llm.py` calls the Anthropic Messages API with a forced tool call, so the answer is structured JSON, not scraped text |
@@ -34,7 +69,7 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
 | Report type, default PDF | Dropdown / `--format`; PDF if you do not choose |
 | Charts + detail | Pass/fail/error per category, coverage, per-test timing, failure details, requirement per test, code and test source in appendices |
 
-## Quick start
+## All commands
 
 ```bash
 pip install -r requirements.txt        # Node.js 22+ also needed for JavaScript tests
@@ -79,3 +114,7 @@ testgen/runtime/          pytest plugin (tracer), node reporter testgen/reportin
 testgen/repair.py         rule-based syntax fixes (demo mode)
 web/index.html            single-page UI                        tests/              44 tests
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
