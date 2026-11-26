@@ -27,6 +27,7 @@ Without `ANTHROPIC_API_KEY` the app runs in a clearly labelled **offline demo mo
 - **A human stays in the loop.** AI can write wrong tests, so nothing runs until you have reviewed, edited, added or deleted tests.
 - **Traceability.** Every test names the requirement it covers, and the report lists them side by side.
 - **Real execution, not just generated text.** Tests run in a subprocess with a timeout; results are `passed`, `failed` or `error`, and one broken test never takes down the run.
+- **AI fixes are reviewed too.** A test that breaks with a syntax error gets a *Fix with AI* suggestion shown as a diff; nothing is saved until you apply it, and you can undo it.
 - **Evidence you can hand over.** Each run is snapshotted into a report with outcome charts, coverage, timings and failure details.
 
 <details>
@@ -63,6 +64,7 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
 | Order: positive, negative, edge | Enforced by the renderer for every test file, including tests you add |
 | Update the requirements | Edit the text and regenerate; manual tests are kept (checkbox) |
 | Add missing tests | "Add a test" form, or describe the gap and let the LLM draft it for review |
+| Fix broken tests | A test that fails with a syntax error gets a **Fix with AI** button in the results: you see the suggested fix as a diff, can edit it, and it is only saved when you click *Apply and rerun*. *Undo AI fix* puts the old code back (one step; editing the test yourself clears it) |
 | Coverage report | Statement coverage of the code under test, missed lines listed |
 | Report type, default PDF | Dropdown / `--format`; PDF if you do not choose |
 | Charts + detail | Pass/fail/error per category, coverage, per-test timing, failure details, requirement per test, code and test source in appendices |
@@ -76,12 +78,12 @@ python app.py                          # web UI on http://127.0.0.1:5000
 python cli.py                          # or the interactive CLI
 python cli.py --sample --yes           # one-shot, no prompts
 python cli.py -r reqs.md -l javascript -s mycode.js -f docx --yes --fail-on-test-failure   # CI style
-python -m pytest tests -q              # the project's own 40 tests
+python -m pytest tests -q              # the project's own 44 tests
 ```
 
 **Code under test.** Optionally paste/upload your code; it is imported as `solution`. If you leave it empty the LLM writes a reference implementation in the same call (the report says who wrote the code). Testing code the model also wrote proves less than testing your own, so supply your code for real work.
 
-**No API key?** The app falls back to an *offline demo provider* that replays a canned suite for the bundled password-validator sample. It is clearly labelled in the UI and in every report. The sample implementation contains a deliberate off-by-one bug, so the report shows a real failing edge case.
+**No API key?** The app falls back to an *offline demo provider* that replays a canned suite for the bundled password-validator sample. It is clearly labelled in the UI and in every report. In this mode *Fix with AI* uses simple rules instead (missing `:`, unclosed brackets, JavaScript syntax in Python) and says so; anything harder needs an API key. The sample implementation contains a deliberate off-by-one bug, so the report shows a real failing edge case.
 
 ## Design notes
 
@@ -109,7 +111,8 @@ app.py, cli.py            web UI + API, command line
 testgen/llm.py            providers (Anthropic, offline demo)   testgen/prompts.py  prompt + tool schema
 testgen/renderer.py       tests → file, ordering, validation    testgen/runner.py   run + coverage + summary
 testgen/runtime/          pytest plugin (tracer), node reporter testgen/reporting/  pdf, docx, html, charts
-web/index.html            single-page UI                        tests/              40 tests
+testgen/repair.py         rule-based syntax fixes (demo mode)
+web/index.html            single-page UI                        tests/              44 tests
 ```
 
 ## License

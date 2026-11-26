@@ -43,6 +43,7 @@ class TestCase:
     requirement: str = ""               # which requirement this test covers
     origin: str = "ai"                  # ai | user
     uid: str = field(default_factory=lambda: new_id("t_"))
+    previous_code: str = ""             # code before an applied AI fix, kept for one-step undo
 
     def normalise(self) -> "TestCase":
         self.category = (self.category or "positive").strip().lower()

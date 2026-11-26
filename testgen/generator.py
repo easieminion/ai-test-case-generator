@@ -4,7 +4,10 @@ Everything here is UI-agnostic; the web app and the CLI both call these function
 """
 from __future__ import annotations
 
-from typing import List, Optional
+import difflib
+from typing import Dict, List, Optional
+
+from . import renderer
 
 from .llm import LLMError, LLMProvider
 from .models import LANGUAGES, Session, TestCase
@@ -86,6 +89,8 @@ def update_test(session: Session, uid: str, **fields) -> TestCase:
                                                 if k in ("category", "title", "code", "explanation", "requirement")}})
     candidate.normalise()
     candidate.origin = "user" if test.origin == "user" or candidate.code != test.code else test.origin
+    if candidate.code != test.code:
+        candidate.previous_code = ""      # a manual edit replaces any pending AI-fix undo
     idx = session.tests.index(test)
     session.tests[idx] = candidate
     session.touch()
@@ -104,3 +109,45 @@ def draft_test(session: Session, provider: LLMProvider, category: str, descripti
         raise ValueError("Describe the missing test in a sentence.")
     return provider.draft_test(session.requirements, session.language, session.source_code,
                                category, description)
+
+
+def suggest_fix(session: Session, provider: LLMProvider, uid: str) -> Dict:
+    """Ask the LLM to repair a test with a syntax error. Returns a preview; nothing is saved.
+
+    The reviewer applies it with `update_test` once they have looked at the diff.
+    """
+    test = find_test(session, uid)
+    error = renderer.validate_tests(session.language, [test]).get(test.uid)
+    if not error:
+        raise ValueError("This test has no syntax error, so there is nothing for AI to fix. "
+                         "Run the tests again if you already edited it.")
+    fix = provider.fix_test(session.requirements, session.language, session.source_code, test, error)
+    candidate = TestCase(category=test.category, title=test.title, code=fix.code, uid=test.uid)
+    remaining = renderer.validate_tests(session.language, [candidate]).get(test.uid, "")
+    diff = "\n".join(difflib.unified_diff(test.code.splitlines(), fix.code.splitlines(),
+                                           "current", "suggested", lineterm=""))
+    return {"uid": test.uid, "error": error, "original": test.code, "code": fix.code,
+            "note": fix.note, "diff": diff, "still_invalid": remaining}
+
+
+def apply_fix(session: Session, uid: str, code: str) -> TestCase:
+    """Save a reviewed AI fix, remembering the old code so it can be undone once."""
+    test = find_test(session, uid)
+    if (code or "").rstrip() == test.code:
+        raise ValueError("The fix is the same as the current code.")
+    previous = test.code
+    test.code = code
+    test.normalise()
+    test.previous_code = previous
+    session.touch()
+    return test
+
+
+def undo_fix(session: Session, uid: str) -> TestCase:
+    """Put back the code from before the last applied AI fix."""
+    test = find_test(session, uid)
+    if not test.previous_code:
+        raise ValueError("There is no applied AI fix to undo for this test.")
+    test.code, test.previous_code = test.previous_code, ""
+    session.touch()
+    return test
