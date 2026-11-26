@@ -42,12 +42,31 @@ python app.py                          # web UI on http://127.0.0.1:5000
 python cli.py                          # or the interactive CLI
 python cli.py --sample --yes           # one-shot, no prompts
 python cli.py -r reqs.md -l javascript -s mycode.js -f docx --yes --fail-on-test-failure   # CI style
-python -m pytest tests -q              # the project's own 40 tests
+python cli.py -r reqs.md --analyze     # only check the requirements, print clarifying questions
+python -m pytest tests -q              # the project's own 55 tests
 ```
 
 **Code under test.** Optionally paste/upload your code; it is imported as `solution`. If you leave it empty the LLM writes a reference implementation in the same call (the report says who wrote the code). Testing code the model also wrote proves less than testing your own, so supply your code for real work.
 
 **No API key?** The app falls back to an *offline demo provider* that replays a canned suite for the bundled password-validator sample. It is clearly labelled in the UI and in every report. The sample implementation contains a deliberate off-by-one bug, so the report shows a real failing edge case.
+
+## Check requirements before generating tests
+
+Click **Check requirements** (or run `python cli.py -r reqs.md --analyze`) to review the requirements before any test is written. For each requirement it flags:
+
+| Problem | Example |
+|---|---|
+| Vague wording | "fast", "user-friendly", "intuitive", "secure", "etc." |
+| Missing limits | "users can upload a photo" with no size or file types |
+| Unclear edge cases | "between 10 and 120 characters" without saying inclusive or exclusive |
+| Ambiguity | "should" / "may" instead of "must", "and/or" |
+| Hard to test | "must never lose data" |
+| Incomplete | "TBD", passive voice with no actor |
+| Contradictions | R3 says max 120 characters, R4 says max 100; "optional" vs "required"; "must" vs "must not" |
+
+Each finding has a severity (high, medium, low), a suggested fix, and a clarifying question. **Copy questions for the team** puts them on the clipboard as Markdown, grouped by requirement with contradictions first, ready for email, Slack or a JIRA ticket (or download `requirement-questions.md`). **Use this wording** replaces a requirement with the suggested rewrite.
+
+With an API key the check is done by the LLM (it also gets the rule findings as hints to confirm or drop). Without one it uses deterministic rules (`testgen/analyzer.py`), which catch the common cases but not meaning-level problems. The CLI exits with code 1 when a high-severity issue is found, so it can gate a CI job.
 
 ## Design notes
 
@@ -75,5 +94,6 @@ app.py, cli.py            web UI + API, command line
 testgen/llm.py            providers (Anthropic, offline demo)   testgen/prompts.py  prompt + tool schema
 testgen/renderer.py       tests → file, ordering, validation    testgen/runner.py   run + coverage + summary
 testgen/runtime/          pytest plugin (tracer), node reporter testgen/reporting/  pdf, docx, html, charts
-web/index.html            single-page UI                        tests/              40 tests
+testgen/analyzer.py       requirement check (rules + LLM), clarifying questions as Markdown
+web/index.html            single-page UI                        tests/              55 tests
 ```

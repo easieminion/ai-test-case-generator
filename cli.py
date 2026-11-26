@@ -4,6 +4,7 @@
 Interactive:      python cli.py
 Scripted / CI:    python cli.py -r requirements.md -l python -s mycode.py -f pdf --yes
 Try the sample:   python cli.py --sample --yes
+Check wording:    python cli.py -r requirements.md --analyze > questions.md
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from testgen import generator, renderer, runner
+from testgen import analyzer, generator, renderer, runner
 from testgen.llm import LLMError, get_provider
 from testgen.models import CATEGORY_LABELS, LANGUAGES, Session
 from testgen.reporting import DEFAULT_FORMAT, FORMATS, build_report, normalise_format
@@ -144,6 +145,9 @@ def main(argv=None) -> int:
     ap.add_argument("-f", "--format", help=f"report type: {', '.join(FORMATS)} (asked interactively if omitted)")
     ap.add_argument("-o", "--output-dir", default="reports", help="where to write the report")
     ap.add_argument("--provider", help="auto | anthropic | demo")
+    ap.add_argument("--analyze", action="store_true",
+                    help="only check the requirements for vague or contradictory wording and print "
+                         "clarifying questions as Markdown (no tests are generated)")
     ap.add_argument("-y", "--yes", action="store_true", help="no prompts: generate, run, report")
     ap.add_argument("--fail-on-test-failure", action="store_true", help="exit 1 if any test fails (for CI)")
     ap.add_argument("--data-dir", default=None)
@@ -158,7 +162,7 @@ def main(argv=None) -> int:
         return 2
     d = provider.describe()
     print(f"LLM provider: {d['name']}" + (f" ({d['model']})" if d["model"] else "")
-          + ("  -- canned demo data, not AI" if d["demo"] else ""))
+          + ("  -- canned demo data, not AI" if d["demo"] else ""), file=sys.stderr if args.analyze else sys.stdout)
 
     # 1. requirements ---------------------------------------------------
     if args.sample:
@@ -169,6 +173,16 @@ def main(argv=None) -> int:
         requirements = args.text
     else:
         requirements = edit_text("", "Enter the requirements")
+    if args.analyze:
+        try:
+            result = analyzer.analyze(requirements, provider)
+        except (LLMError, ValueError) as exc:
+            print(f"error: {exc}")
+            return 2
+        for w in result.warnings:
+            print("note:", w, file=sys.stderr)
+        print(analyzer.to_markdown(result))
+        return 1 if result.summary()["high"] else 0
     language = args.language or (ask("Test language (python/javascript)", "python").lower() if interactive else "python")
     source = Path(args.source).read_text(encoding="utf-8") if args.source else ""
 
