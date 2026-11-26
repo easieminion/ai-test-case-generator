@@ -14,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from testgen import generator, renderer, runner
+from testgen import bugreport, generator, renderer, runner
 from testgen.llm import LLMError, get_provider
 from testgen.models import CATEGORY_LABELS, LANGUAGES, Session
 from testgen.reporting import DEFAULT_FORMAT, FORMATS, build_report, normalise_format
@@ -93,6 +93,25 @@ def show_run(run) -> None:
     print()
 
 
+def write_bug_reports(s: Session, run, provider, folder: Path) -> list:
+    """One .md and one .jira.txt per failure that looks like a real bug (not a broken test)."""
+    written = []
+    for t in run.tests:
+        if not bugreport.is_reportable(t):
+            continue
+        rep = bugreport.build(s, run, t.uid, provider=provider)
+        out = bugreport.export(s, run, rep)
+        folder.mkdir(parents=True, exist_ok=True)
+        md = folder / out["filename"]
+        md.write_text(out["markdown"], encoding="utf-8")
+        md.with_suffix(".jira.txt").write_text(out["jira"], encoding="utf-8")
+        written.append(md)
+        print(f"Bug report written: {md}  (+ .jira.txt)")
+    if not written:
+        print("No real failures, so no bug reports were written.")
+    return written
+
+
 # ----------------------------------------------------------------- main flow
 def review_loop(s: Session, provider, store: SessionStore) -> None:
     while True:
@@ -145,6 +164,8 @@ def main(argv=None) -> int:
     ap.add_argument("-o", "--output-dir", default="reports", help="where to write the report")
     ap.add_argument("--provider", help="auto | anthropic | demo")
     ap.add_argument("-y", "--yes", action="store_true", help="no prompts: generate, run, report")
+    ap.add_argument("--bug-reports", action="store_true",
+                    help="also write a Markdown + JIRA bug report for every real failure")
     ap.add_argument("--fail-on-test-failure", action="store_true", help="exit 1 if any test fails (for CI)")
     ap.add_argument("--data-dir", default=None)
     args = ap.parse_args(argv)
@@ -212,6 +233,9 @@ def main(argv=None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     (out / name).write_bytes(data)
     print(f"Report written: {out / name}   (session {s.id})")
+
+    if args.bug_reports:
+        write_bug_reports(s, run, provider, out / "bugs")
 
     failed = any(t.status != "passed" for t in run.tests)
     return 1 if (failed and args.fail_on_test_failure) else 0

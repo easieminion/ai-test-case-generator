@@ -139,6 +139,49 @@ def build_draft_prompt(requirements: str, language: str, source_code: str, categ
     ])
 
 
+# ---------------------------------------------------------------- bug reports
+BUG_TOOL = "submit_bug_report"
+
+BUG_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string", "description": "One-line bug title a developer understands "
+                                                   "without context (max ~12 words)."},
+        "summary": {"type": "string", "description": "2-4 sentences: what is wrong, for which "
+                                                     "input, and which requirement it breaks."},
+        "steps": {"type": "array", "items": {"type": "string"},
+                  "description": "Numbered steps to reproduce, in plain language with the exact "
+                                 "input values. One action per step. No numbering prefixes."},
+        "expected": {"type": "string", "description": "Expected result according to the requirement."},
+        "actual": {"type": "string", "description": "Actual result, taken from the error output."},
+        "severity": {"type": "string", "enum": ["Critical", "High", "Medium", "Low"]},
+        "severity_reason": {"type": "string", "description": "One sentence justifying the severity."},
+    },
+    "required": ["title", "summary", "steps", "expected", "actual", "severity", "severity_reason"],
+}
+
+BUG_SYSTEM_PROMPT = """\
+You are a senior QA engineer writing a bug report for a developer, from one automated test
+that failed. Be factual: use only the requirements, the code, the test and the error output
+you are given. Never invent environments, versions, users or screenshots. Write steps that a
+person can follow by calling the function with the exact values from the test. If the test
+itself might be wrong, still describe the observed behaviour; do not speculate about fixes.
+
+Always answer by calling the provided tool. Never reply with prose."""
+
+
+def build_bug_prompt(ctx: dict) -> str:
+    return "\n".join([
+        f"Language: {ctx['language']}", "",
+        "=== REQUIREMENTS ===", (ctx.get("requirements") or "").strip(), "",
+        "=== CODE UNDER TEST (module `solution`) ===", (ctx.get("code_under_test") or "").rstrip(), "",
+        f"=== FAILING {ctx.get('category', '').upper()} TEST (covers: {ctx.get('requirement', '')}) ===",
+        ctx.get("test", ""), "",
+        "=== ERROR OUTPUT ===", ctx.get("error_output", ""), "",
+        "Write the bug report.",
+    ])
+
+
 def build_fix_prompt(requirements: str, language: str, source_code: str, title: str,
                      explanation: str, code: str, error: str) -> str:
     return "\n".join([
