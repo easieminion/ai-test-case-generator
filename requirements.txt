@@ -1,0 +1,9 @@
+flask>=3.0
+requests>=2.31
+pytest>=8.0
+matplotlib>=3.8
+reportlab>=4.0
+python-docx>=1.1
+pillow>=10.0
+# JavaScript tests additionally need Node.js 22+ on PATH (uses the built-in node:test runner).
+# Optional: set ANTHROPIC_API_KEY to use a real LLM; otherwise the offline demo provider is used.
