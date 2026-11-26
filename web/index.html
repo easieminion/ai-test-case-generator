@@ -6,160 +6,236 @@
 <title>AI Test Case Generator</title>
 <style>
 :root{
-  --bg:#f6f5f1;--card:#fff;--ink:#0b0b0b;--ink2:#52514e;--line:#e1e0d9;--band:#f4f3ef;
-  --blue:#2a78d6;--blue-d:#1c5cab;--ok:#006300;--ok-bg:#e3f4e3;--bad:#b02a2a;--bad-bg:#fbe7e7;
-  --err:#b4501f;--err-bg:#fdeee5;--pos:#0ca30c;--neg:#d03b3b;--edge:#6250d6;
+  --navy:#14213d;--navy-2:#1f3158;--brass:#b08d2e;--brass-d:#8a6c17;--brass-l:#e7d9a8;
+  --paper:#f3f5f8;--panel:#fff;--line:#d5dae2;--ink:#14213d;--slate:#55607a;--wash:#eef1f6;
+  --ok:#0a7d3b;--ok-bg:#e1f3e8;--bad:#b42318;--bad-bg:#fbe9e7;--err:#a04a08;--err-bg:#fcefdc;
+  --c-pos:#14213d;--c-neg:#b08d2e;--c-edge:#2f6f73;
+  --serif:"Baskerville","Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{background:var(--ink);color:#fff;padding:18px 24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-header h1{font-size:19px;margin:0;font-weight:700}
-header .tag{font-size:13px;opacity:.75}
-.badge{margin-left:auto;font-size:12.5px;padding:4px 10px;border-radius:99px;background:#2b2b2a}
-.badge.demo{background:#fff4d6;color:#6b4a00}
-.badge.live{background:#d8f2d8;color:#064a06}
-main{max-width:1040px;margin:0 auto;padding:20px 16px 80px}
-.steps{display:flex;gap:8px;margin:4px 0 18px;flex-wrap:wrap}
-.step{flex:1;min-width:150px;padding:9px 12px;border-radius:8px;background:#eceae3;color:var(--ink2);font-size:13.5px;font-weight:600}
-.step b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#cfcdc4;color:#fff;margin-right:8px;font-size:12px}
-.step.active{background:#fff;color:var(--ink);box-shadow:0 0 0 2px var(--blue) inset}.step.active b{background:var(--blue)}
-.step.done b{background:var(--pos)}
-section.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
-section.card.locked{opacity:.55;pointer-events:none}
-h2{font-size:17px;margin:0 0 4px}.hint{color:var(--ink2);font-size:13.5px;margin:0 0 12px}
-label{font-weight:600;font-size:13.5px;display:block;margin:12px 0 5px}
-textarea,input[type=text],select{width:100%;border:1px solid #cfcdc4;border-radius:8px;padding:9px 11px;font:inherit;background:#fff}
-textarea{font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
-textarea:focus,input:focus,select:focus{outline:2px solid #9ec5f4;border-color:var(--blue)}
-.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}.row>*{flex:1;min-width:150px}
-.seg{display:flex;border:1px solid #cfcdc4;border-radius:8px;overflow:hidden}
-.seg label{margin:0;flex:1;text-align:center;padding:8px;cursor:pointer;font-weight:600;background:#fff}
-.seg input{display:none}.seg input:checked+span{color:#fff}
-.seg label:has(input:checked){background:var(--blue);color:#fff}
-.seg label:has(input:disabled){opacity:.5;cursor:not-allowed}
-button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:9px 16px;cursor:pointer;background:var(--blue);color:#fff}
-button:hover{background:var(--blue-d)}button:disabled{opacity:.5;cursor:wait}
-button.sec{background:#fff;color:var(--ink);border:1px solid #cfcdc4}button.sec:hover{background:var(--band)}
-button.danger{background:#fff;color:var(--bad);border:1px solid #e3b5b5}button.danger:hover{background:var(--bad-bg)}
-button.sm{padding:4px 10px;font-size:12.5px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 var(--sans)}
+a{color:var(--navy-2)}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ---------- hero ---------- */
+.hero{background:var(--navy);color:#fff;border-bottom:4px solid var(--brass)}
+.hero-in{max-width:1080px;margin:0 auto;padding:34px 24px 0}
+.hero-top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-size:17px;letter-spacing:.2px;color:var(--brass-l)}
+.badge{margin-left:auto;font-size:13px;padding:5px 12px;border:1px solid #3a4b73;border-radius:3px;color:#cfd6e6;background:#1a2a4d}
+.badge.demo{border-color:var(--brass);color:var(--brass-l)}
+.badge.live{border-color:#4f9d77;color:#bfe8d2}
+.hero h1{font:400 clamp(34px,5.6vw,58px)/1.06 var(--serif);margin:22px 0 14px;max-width:18em;letter-spacing:-.4px;text-wrap:balance}
+.hero p.lede{max-width:34em;margin:0 0 30px;font-size:17px;line-height:1.55;color:#c5cde0}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid #2c3d66}
+.step{padding:16px 14px 18px 0;color:#8f9bb8;font-size:14.5px;border-top:3px solid transparent;margin-top:-1px;display:flex;gap:11px;align-items:baseline}
+.step b{font:400 30px/1 var(--serif);color:#566489}
+.step.active{color:#fff;border-top-color:var(--brass)}.step.active b{color:var(--brass)}
+.step.done{color:#c5cde0}.step.done b{color:#7fbf9c;font-size:24px}
+
+/* ---------- layout ---------- */
+main{max-width:1080px;margin:0 auto;padding:30px 24px 90px}
+.sheet{display:grid;grid-template-columns:88px minmax(0,1fr);margin-bottom:26px}
+.sheet>.num{font:400 74px/1 var(--serif);color:var(--brass);padding-top:2px;border-right:1px solid var(--line);margin-right:26px}
+.sheet>.body{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--navy);border-radius:3px;padding:24px 28px 26px}
+.sheet.locked{opacity:.5;pointer-events:none}
+.sheet.locked>.num{color:#b8bfcc}
+h2{font:400 28px/1.15 var(--serif);margin:0 0 6px;letter-spacing:-.2px}
+.hint{color:var(--slate);margin:0 0 14px;max-width:46em}
+label{font-weight:600;font-size:14px;display:block;margin:16px 0 6px}
+textarea,input[type=text],select{width:100%;border:1px solid #b6bdcb;border-radius:3px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}
+textarea{font:13px/1.55 var(--mono);resize:vertical}
+select{appearance:auto}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}.row>*{flex:1;min-width:150px}
+.seg{display:flex;border:1px solid var(--navy);border-radius:3px;overflow:hidden}
+.seg label{margin:0;flex:1;text-align:center;padding:9px;cursor:pointer;font-weight:600;background:#fff;color:var(--navy)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--navy);color:#fff}
+.seg label:has(input:focus-visible){outline:2px solid var(--brass);outline-offset:-4px}
+
+button{font:600 14.5px var(--sans);border:1px solid var(--navy);border-bottom:3px solid var(--brass);border-radius:3px;padding:9px 18px 8px;cursor:pointer;background:var(--navy);color:#fff}
+button:hover{background:var(--navy-2)}button:disabled{opacity:.55;cursor:wait}
+button.sec{background:#fff;color:var(--navy);border-bottom-width:1px}button.sec:hover{background:var(--wash)}
+button.danger{background:#fff;color:var(--bad);border-color:#e1b4ae;border-bottom-width:1px}button.danger:hover{background:var(--bad-bg)}
+button.sm{padding:4px 11px;font-size:13px;border-bottom-width:1px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
 .chk{display:flex;gap:7px;align-items:center;font-weight:500;margin:0}.chk input{width:auto}
-details.opt{margin-top:12px;border:1px dashed #cfcdc4;border-radius:8px;padding:8px 12px}
-details.opt summary{cursor:pointer;font-weight:600;font-size:13.5px}
-.msg{padding:9px 12px;border-radius:8px;margin:10px 0;font-size:14px}
-.msg.err{background:var(--bad-bg);color:var(--bad)}.msg.warn{background:#fff4d6;color:#6b4a00}.msg.ok{background:var(--ok-bg);color:var(--ok)}
-.group{margin-top:16px}.ghead{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:8px}
-.dot{width:12px;height:12px;border-radius:3px}.count{color:var(--ink2);font-weight:500}
-.tc{border:1px solid var(--line);border-left-width:5px;border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fff}
-.tc.positive{border-left-color:var(--pos)}.tc.negative{border-left-color:var(--neg)}.tc.edge{border-left-color:var(--edge)}
-.tc .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.tc .lab{font-weight:800;font-size:13px}
-.tc .ttl{font-weight:600;flex:1}.pill{font-size:11.5px;background:var(--band);padding:2px 8px;border-radius:99px;color:var(--ink2)}
-.pill.user{background:#e6e1fb;color:#3d2fa0}
-.tc .expl{font-size:13px;color:var(--ink2);margin:4px 0 6px}
-pre{background:var(--band);border-radius:8px;padding:10px 12px;overflow:auto;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:6px 0 0;white-space:pre}
-.tc .btns{display:flex;gap:6px;margin-top:8px}
-.form{border:1px solid var(--blue);background:#f4f8fe;border-radius:10px;padding:12px 14px;margin:12px 0}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:12px 0}
-.kpi{background:var(--band);border-top:4px solid var(--ink);padding:10px 6px;text-align:center;border-radius:3px}
-.kpi b{display:block;font-size:26px;line-height:1.15}.kpi span{font-size:12px;color:var(--ink2)}
-.charts{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}.charts img{width:100%;border-radius:8px;border:1px solid var(--line)}
-table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:10px}
-th{background:var(--ink);color:#fff;text-align:left;padding:7px 9px}td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:nth-child(even) td{background:var(--band)}
-.st{font-weight:700;font-size:12.5px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+details.opt{margin-top:14px;border:1px dashed #b6bdcb;border-radius:3px;padding:9px 13px;background:var(--wash)}
+details.opt summary{cursor:pointer;font-weight:600}
+.msg{padding:9px 13px;border-radius:3px;margin:12px 0;border-left:4px solid}
+.msg.err{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.msg.warn{background:#fbf3dc;color:#6b5311;border-color:var(--brass)}
+.msg.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.small{font-size:13px;color:var(--slate)}
+code{font-family:var(--mono);font-size:.92em;background:var(--wash);padding:1px 5px;border-radius:2px}
+
+/* ---------- test ledger ---------- */
+.group{margin-top:22px}
+.ghead{display:flex;align-items:baseline;gap:10px;font:400 20px var(--serif);padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.dot{width:12px;height:12px;border-radius:1px;align-self:center}
+.count{font:14px var(--sans);color:var(--slate)}
+.tc{border:1px solid var(--line);border-left:5px solid var(--navy);border-radius:2px;padding:11px 14px 12px;margin-bottom:9px;background:#fff}
+.tc.positive{border-left-color:var(--c-pos)}.tc.negative{border-left-color:var(--c-neg)}.tc.edge{border-left-color:var(--c-edge)}
+.tc .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.tc .lab{font:400 20px var(--serif);min-width:2ch;color:var(--brass-d)}
+.tc .ttl{font-weight:600;flex:1}
+.pill{font-size:12.5px;background:var(--wash);padding:2px 9px;border-radius:2px;color:var(--slate)}
+.pill.user{background:var(--brass-l);color:#5f4a0c}
+.tc .expl{font-size:13.5px;color:var(--slate);margin:5px 0 7px;font-style:italic}
+pre{background:var(--wash);border-radius:3px;padding:11px 13px;overflow:auto;font:12.5px/1.55 var(--mono);margin:6px 0 0;white-space:pre}
+.tc .btns{display:flex;gap:6px;margin-top:9px}
+.form{border:1px solid var(--navy);border-top:3px solid var(--brass);background:#f8f9fc;border-radius:3px;padding:14px 16px;margin:14px 0}
+
+/* ---------- results ---------- */
+.res-head{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.res-head .meta{flex:1;min-width:240px}
+.kpis{display:flex;flex-wrap:wrap;margin:16px 0 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpi{flex:1;min-width:110px;padding:12px 16px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:0}
+.kpi b{display:block;font:400 34px/1.1 var(--serif)}
+.kpi span{font-size:13px;color:var(--slate)}
+.kpi.good b{color:var(--ok)}.kpi.bad b{color:var(--bad)}.kpi.warn b{color:var(--err)}
+.charts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.charts img{width:100%;border-radius:3px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:14px}
+th{background:var(--navy);color:#fff;text-align:left;padding:8px 10px;font-weight:600}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:nth-child(even) td{background:#f8f9fc}
+.st{font-weight:600;font-size:13px;padding:2px 9px;border-radius:2px;white-space:nowrap}
 .st.passed{background:var(--ok-bg);color:var(--ok)}.st.failed{background:var(--bad-bg);color:var(--bad)}.st.error{background:var(--err-bg);color:var(--err)}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:6px}
+
+/* the one memorable moment: an inspection stamp */
+.stamp{font:700 24px/1.15 var(--serif);text-align:center;padding:10px 20px 9px;border:3px double currentColor;border-radius:4px;
+  transform:rotate(-5deg);mix-blend-mode:multiply;opacity:.92;letter-spacing:.5px;flex:0 0 auto;user-select:none}
+.stamp small{display:block;font:600 12.5px var(--sans);letter-spacing:.2px;margin-top:3px}
+.stamp.ok{color:var(--ok)}.stamp.bad{color:var(--bad)}
+.stamp.fresh{animation:thump .55s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes thump{0%{transform:rotate(-5deg) scale(2.3);opacity:0}55%{transform:rotate(-5deg) scale(.94);opacity:1}100%{transform:rotate(-5deg) scale(1)}}
+
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:7px}
 @keyframes s{to{transform:rotate(360deg)}}
-.small{font-size:12.5px;color:var(--ink2)}
-.hist{font-size:13px}.hist a{color:var(--blue-d);cursor:pointer}
+.hist a{cursor:pointer}
+
+@media (max-width:820px){
+  .badge{margin-left:0}
+  .sheet{grid-template-columns:1fr}.sheet>.num{border-right:0;margin:0 0 6px;font-size:46px}
+  .sheet>.body{padding:18px 16px}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .charts{grid-template-columns:1fr}
+  .kpi{min-width:45%}
+}
+@media (prefers-reduced-motion:reduce){.stamp.fresh,.spin{animation:none}html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
-<header>
-  <h1>AI Test Case Generator</h1>
-  <span class="tag">requirements &rarr; LLM tests &rarr; automated run with coverage &rarr; report</span>
-  <span id="badge" class="badge">checking provider...</span>
+<header class="hero">
+  <div class="hero-in">
+    <div class="hero-top">
+      <span class="brand">AI Test Case Generator</span>
+      <span id="badge" class="badge">Checking provider</span>
+    </div>
+    <h1>Requirements in. Tested, measured, reported.</h1>
+    <p class="lede">Write what the code must do. Review the tests an LLM drafts, run them with coverage, and download the report as PDF, Word or HTML.</p>
+    <div class="steps" id="steps"></div>
+  </div>
 </header>
+
 <main>
-  <div class="steps" id="steps"></div>
   <div id="globalMsg"></div>
 
-  <!-- 1 ---------------------------------------------------------------- -->
-  <section class="card" id="s1">
-    <h2>1 &middot; Requirements</h2>
-    <p class="hint">Describe what the code must do. Number the requirements (R1, R2, ...) so tests can point back to them. You can edit this text at any time and regenerate.</p>
-    <div class="row">
-      <div>
-        <label style="margin-top:0">Test language</label>
-        <div class="seg">
-          <label><input type="radio" name="lang" value="python" checked><span>Python (pytest)</span></label>
-          <label><input type="radio" name="lang" value="javascript"><span>JavaScript (node:test)</span></label>
+  <!-- 1 -->
+  <section class="sheet" id="s1">
+    <div class="num">1</div>
+    <div class="body">
+      <h2>Requirements</h2>
+      <p class="hint">Describe what the code must do. Number the requirements (R1, R2, ...) so each test can point back to one. You can edit this text at any time and regenerate.</p>
+      <div class="row">
+        <div>
+          <label style="margin-top:0">Test language</label>
+          <div class="seg">
+            <label><input type="radio" name="lang" value="python" checked><span>Python (pytest)</span></label>
+            <label><input type="radio" name="lang" value="javascript"><span>JavaScript (node:test)</span></label>
+          </div>
         </div>
+        <div style="max-width:210px">
+          <label style="margin-top:0" for="per">Tests per category</label>
+          <select id="per"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select>
+        </div>
+        <div style="flex:0 0 auto"><button class="sec" id="loadSample">Load sample</button></div>
       </div>
-      <div style="max-width:210px">
-        <label style="margin-top:0" for="per">Tests per category</label>
-        <select id="per"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select>
+      <label for="req">Requirements</label>
+      <textarea id="req" rows="9" placeholder="Example:&#10;R1. validate_password(password) must accept passwords of 8 to 64 characters...&#10;R2. ..."></textarea>
+      <details class="opt"><summary>Code under test (optional)</summary>
+        <p class="hint" style="margin-top:8px">Paste the code to test (it is imported as <code>solution</code>), or leave this empty and the LLM writes a reference implementation too.</p>
+        <input type="file" id="srcFile" class="small" style="margin-bottom:6px">
+        <textarea id="src" rows="8" placeholder="Leave empty to let the AI write the code"></textarea>
+      </details>
+      <div class="actions">
+        <button id="btnGenerate">Generate tests</button>
+        <label class="chk" id="keepWrap" style="display:none"><input type="checkbox" id="keepUser" checked> Keep my manually added tests</label>
+        <button class="sec" id="btnSaveReq" style="display:none">Save text only</button>
+        <span class="small" id="sessionInfo"></span>
       </div>
-      <div style="flex:0 0 auto"><button class="sec" id="loadSample">Load sample</button></div>
+      <div id="msg1"></div>
     </div>
-    <label for="req">Requirements</label>
-    <textarea id="req" rows="9" placeholder="Example:&#10;R1. validate_password(password) must accept passwords of 8 to 64 characters...&#10;R2. ..."></textarea>
-    <details class="opt"><summary>Code under test (optional)</summary>
-      <p class="hint" style="margin-top:8px">Paste the code to test (it is imported as <code>solution</code>), or leave empty and the LLM writes a reference implementation too.</p>
-      <input type="file" id="srcFile" class="small" style="margin-bottom:6px">
-      <textarea id="src" rows="8" placeholder="Leave empty to let the AI write the code"></textarea>
-    </details>
-    <div class="actions">
-      <button id="btnGenerate">Generate tests</button>
-      <label class="chk" id="keepWrap" style="display:none"><input type="checkbox" id="keepUser" checked> keep my manually added tests</label>
-      <button class="sec" id="btnSaveReq" style="display:none">Save text only (no regenerate)</button>
-      <span class="small" id="sessionInfo"></span>
-    </div>
-    <div id="msg1"></div>
   </section>
 
-  <!-- 2 ---------------------------------------------------------------- -->
-  <section class="card locked" id="s2">
-    <h2>2 &middot; Review the tests</h2>
-    <p class="hint">Order is always Positive &rarr; Negative &rarr; Edge case. Each test has its explanation as a code comment. Edit or delete anything, and add what is missing.</p>
-    <div class="actions" style="margin-top:0">
-      <button id="btnAdd" class="sec">+ Add a test</button>
-      <button id="btnFile" class="sec">View generated test file</button>
-      <button id="btnCode" class="sec">View code under test</button>
+  <!-- 2 -->
+  <section class="sheet locked" id="s2">
+    <div class="num">2</div>
+    <div class="body">
+      <h2>Review the tests</h2>
+      <p class="hint">Tests are always ordered Positive, Negative, Edge case. Each one carries its explanation as a code comment. Edit or delete anything, and add what is missing.</p>
+      <div class="actions" style="margin-top:0">
+        <button id="btnAdd" class="sec">Add a test</button>
+        <button id="btnFile" class="sec">View generated test file</button>
+        <button id="btnCode" class="sec">View code under test</button>
+      </div>
+      <div id="addForm"></div>
+      <div id="viewer"></div>
+      <div id="tests"></div>
     </div>
-    <div id="addForm"></div>
-    <div id="viewer"></div>
-    <div id="tests"></div>
   </section>
 
-  <!-- 3 ---------------------------------------------------------------- -->
-  <section class="card locked" id="s3">
-    <h2>3 &middot; Run with coverage</h2>
-    <p class="hint">Tests run in a subprocess with a timeout. Results and line coverage are collected automatically.</p>
-    <div id="stale"></div>
-    <div class="actions" style="margin-top:0"><button id="btnRun">Run tests</button></div>
-    <div id="results"></div>
+  <!-- 3 -->
+  <section class="sheet locked" id="s3">
+    <div class="num">3</div>
+    <div class="body">
+      <h2>Run with coverage</h2>
+      <p class="hint">Tests run in a subprocess with a timeout. Results and statement coverage are collected automatically.</p>
+      <div id="stale"></div>
+      <div class="actions" style="margin-top:0"><button id="btnRun">Run tests</button></div>
+      <div id="results"></div>
+    </div>
   </section>
 
-  <!-- 4 ---------------------------------------------------------------- -->
-  <section class="card locked" id="s4">
-    <h2>4 &middot; Report</h2>
-    <p class="hint">Choose the document type. PDF is the default.</p>
-    <div class="row" style="align-items:flex-end">
-      <div style="max-width:260px"><label style="margin-top:0" for="fmt">Document type</label>
-        <select id="fmt"><option value="pdf" selected>PDF (default)</option><option value="docx">Word (.docx)</option><option value="html">HTML (single file)</option></select></div>
-      <div style="flex:0 0 auto"><button id="btnReport">Generate report</button></div>
+  <!-- 4 -->
+  <section class="sheet locked" id="s4">
+    <div class="num">4</div>
+    <div class="body">
+      <h2>Report</h2>
+      <p class="hint">Choose the document type. PDF is the default.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="max-width:260px"><label style="margin-top:0" for="fmt">Document type</label>
+          <select id="fmt"><option value="pdf" selected>PDF (default)</option><option value="docx">Word (.docx)</option><option value="html">HTML (single file)</option></select></div>
+        <div style="flex:0 0 auto"><button id="btnReport">Generate report</button></div>
+      </div>
+      <div id="msg4"></div>
     </div>
-    <div id="msg4"></div>
   </section>
 </main>
 
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const state = { session: null, config: null, busy: false };
+const state = { session: null, config: null, busy: false, freshStamp: false };
 const CATS = ["positive", "negative", "edge"];
-const CAT_COLOR = { positive: "var(--pos)", negative: "var(--neg)", edge: "var(--edge)" };
+const CAT_COLOR = { positive: "var(--c-pos)", negative: "var(--c-neg)", edge: "var(--c-edge)" };
+const GLYPH = { passed: "✓", failed: "✕", error: "!" };
+const STATUS_TEXT = { passed: "Passed", failed: "Failed", error: "Error" };
 
 async function api(method, url, body) {
   const opt = { method, headers: {} };
@@ -173,7 +249,7 @@ async function api(method, url, body) {
   return r;
 }
 const j = async (...a) => (await api(...a)).json();
-function note(el, text, kind = "err") { $(el).innerHTML = text ? `<div class="msg ${kind}">${esc(text)}</div>` : ""; }
+function note(el, text, kind = "err") { $(el).innerHTML = text ? `<div class="msg ${kind}" role="${kind === "err" ? "alert" : "status"}">${esc(text)}</div>` : ""; }
 function warnList(el, list) { $(el).innerHTML = (list || []).map(w => `<div class="msg warn">${esc(w)}</div>`).join(""); }
 async function withBusy(btn, label, fn) {
   const b = $(btn), old = b.innerHTML;
@@ -186,9 +262,9 @@ const lang = () => document.querySelector('input[name=lang]:checked').value;
 function renderSteps() {
   const s = state.session, ran = s && s.runs.length;
   const idx = !s ? 0 : !ran ? 1 : 2;
-  const names = ["Requirements", "Review tests", "Run & coverage", "Report"];
+  const names = ["Requirements", "Review tests", "Run with coverage", "Report"];
   $("#steps").innerHTML = names.map((n, i) =>
-    `<div class="step ${i === idx ? "active" : i < idx ? "done" : ""}"><b>${i < idx ? "&#10003;" : i + 1}</b>${n}</div>`).join("");
+    `<div class="step ${i === idx ? "active" : i < idx ? "done" : ""}"${i === idx ? ' aria-current="step"' : ""}><b>${i < idx ? "&#10003;" : i + 1}</b>${n}</div>`).join("");
   $("#s2").classList.toggle("locked", !s);
   $("#s3").classList.toggle("locked", !s);
   $("#s4").classList.toggle("locked", !ran);
@@ -201,7 +277,7 @@ function loadIntoForm() {
   $("#src").value = s.source_origin === "user" ? s.source_code : "";
   $("#per").value = String(s.tests_per_category);
   document.querySelector(`input[name=lang][value=${s.language}]`).checked = true;
-  $("#btnGenerate").textContent = "Update requirements & regenerate";
+  $("#btnGenerate").textContent = "Update requirements and regenerate";
   $("#keepWrap").style.display = "flex";
   $("#btnSaveReq").style.display = "inline-block";
   $("#sessionInfo").textContent = `Session ${s.id}`;
@@ -213,7 +289,7 @@ async function generate() {
   const body = { requirements: $("#req").value, language: lang(), source_code: $("#src").value,
                  tests_per_category: +$("#per").value };
   note("#msg1", ""); warnList("#msg1", []);
-  await withBusy("#btnGenerate", state.session ? "Regenerating..." : "Generating tests...", async () => {
+  await withBusy("#btnGenerate", state.session ? "Regenerating" : "Generating tests", async () => {
     try {
       let data;
       if (!state.session) {
@@ -244,7 +320,7 @@ function testCard(t, label) {
   return `<div class="tc ${t.category}" data-uid="${t.uid}">
     <div class="top"><span class="lab">${esc(label)}</span><span class="ttl">${esc(t.title)}</span>
       ${t.requirement ? `<span class="pill">${esc(t.requirement)}</span>` : ""}
-      ${t.origin === "user" ? `<span class="pill user">manual</span>` : ""}</div>
+      ${t.origin === "user" ? `<span class="pill user">Added by you</span>` : ""}</div>
     <div class="expl"># ${esc(t.explanation || "No explanation")}</div>
     <pre>${esc(t.code)}</pre>
     <div class="btns"><button class="sec sm" data-act="edit">Edit</button><button class="danger sm" data-act="del">Delete</button></div>
@@ -257,8 +333,8 @@ function renderTests() {
   $("#tests").innerHTML = CATS.map(c => {
     const g = sorted.filter(t => t.category === c);
     return `<div class="group"><div class="ghead"><span class="dot" style="background:${CAT_COLOR[c]}"></span>${esc(s.category_labels[c])}
-      <span class="count">(${g.length})</span></div>${g.map(t => testCard(t, s.labels[t.uid])).join("") ||
-      '<div class="small">No tests in this category yet.</div>'}</div>`;
+      <span class="count">${g.length} ${g.length === 1 ? "test" : "tests"}</span></div>${g.map(t => testCard(t, s.labels[t.uid])).join("") ||
+      '<div class="small">No tests in this category yet. Use Add a test.</div>'}</div>`;
   }).join("");
 }
 function testForm(t, mode) {
@@ -269,8 +345,8 @@ function testForm(t, mode) {
       <div><label style="margin-top:0">Title</label><input type="text" id="f_title" value="${esc(t.title)}"></div>
       <div><label style="margin-top:0">Requirement it covers</label><input type="text" id="f_req" value="${esc(t.requirement)}" placeholder="e.g. R2"></div></div>
     ${isNew ? `<details class="opt"><summary>Draft this test with AI</summary><div class="row" style="margin-top:8px">
-      <input type="text" id="f_desc" placeholder="Describe the missing test, e.g. 'password with only digits'">
-      <div style="flex:0 0 auto"><button class="sec" id="f_draft">Draft</button></div></div><div id="f_draftmsg"></div></details>` : ""}
+      <input type="text" id="f_desc" placeholder="Describe the missing test, e.g. a password with only digits">
+      <div style="flex:0 0 auto"><button class="sec" id="f_draft">Draft test</button></div></div><div id="f_draftmsg"></div></details>` : ""}
     <label>Explanation (becomes a comment above the test)</label>
     <textarea id="f_expl" rows="2">${esc(t.explanation)}</textarea>
     <label>Test body only (${lang() === "python" ? "Python: plain statements, use <code>solution.fn()</code> and <code>assert</code>" : "JavaScript: statements inside an async function, use <code>solution.fn()</code> and <code>assert</code>"})</label>
@@ -283,8 +359,8 @@ function openForm(host, t, mode, uid) {
   $("#f_cancel", host).onclick = () => { host.innerHTML = ""; renderTests(); };
   if (mode === "new") {
     const demo = state.config.provider.demo;
-    if (demo) { $("#f_draft", host).disabled = true; $("#f_draftmsg", host).innerHTML = '<div class="small">AI drafting needs an API key (offline demo mode).</div>'; }
-    $("#f_draft", host).onclick = () => withBusy("#f_draft", "Drafting...", async () => {
+    if (demo) { $("#f_draft", host).disabled = true; $("#f_draftmsg", host).innerHTML = '<div class="small">Drafting needs an API key. Offline demo mode cannot write new tests.</div>'; }
+    $("#f_draft", host).onclick = () => withBusy("#f_draft", "Drafting", async () => {
       try {
         const d = await j("POST", `/api/sessions/${state.session.id}/tests/draft`, { category: $("#f_cat").value, description: $("#f_desc").value });
         $("#f_title").value = d.test.title; $("#f_req").value = d.test.requirement;
@@ -293,7 +369,7 @@ function openForm(host, t, mode, uid) {
       } catch (e) { note("#f_draftmsg", e.message); }
     });
   }
-  $("#f_save", host).onclick = () => withBusy("#f_save", "Saving...", async () => {
+  $("#f_save", host).onclick = () => withBusy("#f_save", "Saving", async () => {
     const body = { category: $("#f_cat").value, title: $("#f_title").value, requirement: $("#f_req").value,
                    explanation: $("#f_expl").value, code: $("#f_code").value };
     try {
@@ -309,39 +385,51 @@ async function showViewer(kind) {
   if (v.dataset.kind === kind) { v.innerHTML = ""; v.dataset.kind = ""; return; }
   v.dataset.kind = kind;
   const text = kind === "file" ? await (await api("GET", `/api/sessions/${state.session.id}/testfile`)).text() : state.session.source_code;
-  v.innerHTML = `<div class="small" style="margin-top:12px">${kind === "file" ? "Generated test file (exactly what will run)" : "Code under test, imported as <code>solution</code>"}${kind === "code" ? " &middot; written by " + (state.session.source_origin === "user" ? "you" : "the " + (state.config.provider.demo ? "demo provider" : "LLM")) : ""}</div><pre style="max-height:420px">${esc(text)}</pre>`;
+  const who = state.session.source_origin === "user" ? "you" : "the " + (state.config.provider.demo ? "demo provider" : "LLM");
+  v.innerHTML = `<div class="small" style="margin-top:14px">${kind === "file" ? "Generated test file, exactly what will run" : "Code under test, imported as <code>solution</code>. Written by " + who + "."}</div><pre style="max-height:420px">${esc(text)}</pre>`;
 }
 
 // ------------------------------------------------------------------ run + results
-function kpi(label, val, color) { return `<div class="kpi" style="border-top-color:${color}"><b>${esc(val)}</b><span>${esc(label)}</span></div>`; }
+function kpi(label, val, cls = "") { return `<div class="kpi ${cls}"><b>${esc(val)}</b><span>${esc(label)}</span></div>`; }
+function stampHtml(sm, fresh) {
+  const bad = sm.failed + sm.error;
+  const ok = bad === 0 && sm.total > 0;
+  const text = ok ? `All ${sm.total} passed`
+    : sm.error === 0 ? `${sm.failed} of ${sm.total} failed`
+    : sm.failed === 0 ? `${sm.error} of ${sm.total} errored`
+    : `${bad} of ${sm.total} need attention`;
+  const sub = sm.coverage_percent == null ? "" : `${sm.coverage_percent}% of statements covered`;
+  return `<div class="stamp ${ok ? "ok" : "bad"} ${fresh ? "fresh" : ""}" role="img" aria-label="${esc(text)}">${esc(text)}${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
+}
 function renderResults() {
   const s = state.session, host = $("#results");
-  $("#stale").innerHTML = s && s.tests_changed_since_run ? '<div class="msg warn">Tests or code changed since the last run. Run again so the results (and the report) are up to date.</div>' : "";
+  $("#stale").innerHTML = s && s.tests_changed_since_run ? '<div class="msg warn">Tests or code changed since the last run. Run again so the results and the report are up to date.</div>' : "";
   if (!s || !s.runs.length) { host.innerHTML = ""; return; }
   const run = s.runs[s.runs.length - 1], sm = run.summary;
   const cov = sm.coverage_percent == null ? "n/a" : sm.coverage_percent + "%";
   const rows = run.tests.map(t => `<tr><td><b>${esc(t.label)}</b></td><td>${esc(s.category_labels[t.category])}</td><td>${esc(t.title)}${t.message ? `<pre style="margin-top:4px">${esc(t.message)}</pre>` : ""}</td>
-     <td><span class="st ${t.status}">${t.status.toUpperCase()}</span></td><td>${t.duration_ms.toFixed(2)} ms</td></tr>`).join("");
-  const q = `?run=${run.run_id}`;
+     <td><span class="st ${t.status}">${GLYPH[t.status] || ""} ${STATUS_TEXT[t.status] || esc(t.status)}</span></td><td>${t.duration_ms.toFixed(2)} ms</td></tr>`).join("");
+  const q = `?run=${run.run_id}`, fresh = state.freshStamp; state.freshStamp = false;
   host.innerHTML = `
-    <div class="small" style="margin-top:12px">${esc(run.runner)} &middot; coverage: ${esc(run.coverage_tool)} &middot; ${run.duration_s}s</div>
-    <div class="kpis">${kpi("Total", sm.total, "#0b0b0b")}${kpi("Passed", sm.passed, "#0ca30c")}${kpi("Failed", sm.failed, "#d03b3b")}${kpi("Errors", sm.error, "#ec835a")}${kpi("Pass rate", sm.pass_rate + "%", "#0b0b0b")}${kpi("Coverage", cov, "#2a78d6")}</div>
-    <div class="charts"><img alt="Outcome by category" src="/api/sessions/${s.id}/charts/categories.png${q}">
-      ${run.coverage.length ? `<img alt="Coverage" src="/api/sessions/${s.id}/charts/coverage.png${q}">` : ""}</div>
+    <div class="res-head"><div class="meta"><div><b>${esc(run.runner)}</b></div>
+      <div class="small">Coverage by ${esc(run.coverage_tool)}. Finished in ${run.duration_s} s.</div></div>${stampHtml(sm, fresh)}</div>
+    <div class="kpis">${kpi("Total", sm.total)}${kpi("Passed", sm.passed, "good")}${kpi("Failed", sm.failed, sm.failed ? "bad" : "")}${kpi("Errors", sm.error, sm.error ? "warn" : "")}${kpi("Pass rate", sm.pass_rate + "%")}${kpi("Coverage", cov)}</div>
+    <div class="charts"><img alt="Passed, failed and errored tests by category" src="/api/sessions/${s.id}/charts/categories.png${q}">
+      ${run.coverage.length ? `<img alt="Statement coverage of the code under test" src="/api/sessions/${s.id}/charts/coverage.png${q}">` : ""}</div>
     <table><thead><tr><th>ID</th><th>Category</th><th>Test</th><th>Status</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>
-    ${s.runs.length > 1 ? `<p class="small hist">${s.runs.length} runs recorded; the report uses the latest.</p>` : ""}`;
+    ${s.runs.length > 1 ? `<p class="small hist">${s.runs.length} runs recorded. The report uses the latest.</p>` : ""}`;
 }
 async function runTests() {
   note("#globalMsg", "");
-  await withBusy("#btnRun", "Running tests...", async () => {
-    try { const d = await j("POST", `/api/sessions/${state.session.id}/run`); setSession(d.session);
+  await withBusy("#btnRun", "Running tests", async () => {
+    try { const d = await j("POST", `/api/sessions/${state.session.id}/run`); state.freshStamp = true; setSession(d.session);
           $("#results").scrollIntoView({ behavior: "smooth", block: "start" }); }
     catch (e) { note("#globalMsg", e.message); }
   });
 }
 async function makeReport() {
   note("#msg4", "");
-  await withBusy("#btnReport", "Building report...", async () => {
+  await withBusy("#btnReport", "Building report", async () => {
     try {
       const fmt = $("#fmt").value;
       const r = await api("POST", `/api/sessions/${state.session.id}/report`, { format: fmt });
@@ -349,8 +437,8 @@ async function makeReport() {
       const url = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement("a"), { href: url, download: name });
       document.body.appendChild(a); a.click(); a.remove();
-      $("#msg4").innerHTML = `<div class="msg ok">Report ready: <a href="${url}" download="${esc(name)}">${esc(name)}</a>
-        ${fmt !== "docx" ? ` &middot; <a href="${url}" target="_blank">open in a new tab</a>` : ""}</div>`;
+      $("#msg4").innerHTML = `<div class="msg ok" role="status">Report ready: <a href="${url}" download="${esc(name)}">${esc(name)}</a>
+        ${fmt !== "docx" ? ` or <a href="${url}" target="_blank">open it in a new tab</a>` : ""}</div>`;
     } catch (e) { note("#msg4", e.message); }
   });
 }
@@ -386,7 +474,7 @@ $("#tests").onclick = e => {
     state.config = await j("GET", "/api/config");
     const p = state.config.provider, b = $("#badge");
     b.className = "badge " + (p.demo ? "demo" : "live");
-    b.textContent = p.demo ? "Offline demo mode (canned sample, no API key)" : `LLM: ${p.name} / ${p.model}`;
+    b.textContent = p.demo ? "Offline demo mode: canned sample, no API key" : `LLM: ${p.name} / ${p.model}`;
     const id = location.hash.slice(1);
     if (id) { try { state.session = (await j("GET", `/api/sessions/${id}`)).session; loadIntoForm(); } catch (e) { /* stale link */ } }
   } catch (e) { note("#globalMsg", "Cannot reach the server: " + e.message); }

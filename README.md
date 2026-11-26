@@ -2,8 +2,9 @@
 
 Paste requirements → an LLM writes the tests in **Python or JavaScript** → the tests run automatically with a **coverage report** → you get a **PDF** (or Word / HTML) report with charts.
 
+![Home](examples/ui-0-home.png)
 ![Review tests](examples/ui-1-review-tests.png)
-![Results and coverage](examples/ui-2-results-coverage.png)
+![Results with inspection stamp and coverage](examples/ui-2-results-coverage.png)
 
 Sample reports: [`examples/python/sample-report.pdf`](examples/python/sample-report.pdf) · [`examples/javascript/sample-report.pdf`](examples/javascript/sample-report.pdf)
 
