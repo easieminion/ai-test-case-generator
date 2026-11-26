@@ -110,8 +110,32 @@ def test_syntax_error_can_be_fixed_after_review(c):
     current = c.get(f"/api/sessions/{sid}").get_json()["session"]
     assert next(t for t in current["tests"] if t["uid"] == uid)["code"] == broken   # preview only
 
-    c.put(f"/api/sessions/{sid}/tests/{uid}", json={"code": fix["code"]})
+    applied = c.post(f"/api/sessions/{sid}/tests/{uid}/fix/apply", json={"code": fix["code"]}).get_json()["session"]
+    t = next(t for t in applied["tests"] if t["uid"] == uid)
+    assert t["code"] == fix["code"] and t["previous_code"] == broken
     rerun = c.post(f"/api/sessions/{sid}/run").get_json()["session"]["runs"][-1]
     assert next(t for t in rerun["tests"] if t["uid"] == uid)["status"] == "passed"
     # a test that parses has nothing to fix
     assert c.post(f"/api/sessions/{sid}/tests/{uid}/fix").status_code == 400
+
+
+def test_applied_fix_can_be_undone_once(c):
+    s = create(c)
+    sid, t = s["id"], s["tests"][0]
+    uid, ai_origin = t["uid"], t["origin"]
+    c.put(f"/api/sessions/{sid}/tests/{uid}", json={"code": t["code"] + "("})
+    fixed = t["code"] + "()"
+    after = c.post(f"/api/sessions/{sid}/tests/{uid}/fix/apply", json={"code": fixed}).get_json()["session"]
+    assert next(x for x in after["tests"] if x["uid"] == uid)["code"] == fixed
+    undone = c.post(f"/api/sessions/{sid}/tests/{uid}/fix/undo").get_json()["session"]
+    back = next(x for x in undone["tests"] if x["uid"] == uid)
+    assert back["code"] == t["code"] + "(" and back["previous_code"] == ""
+    assert c.post(f"/api/sessions/{sid}/tests/{uid}/fix/undo").status_code == 400     # one step only
+    # an applied fix keeps the test's origin; a manual edit afterwards drops the undo
+    t2 = s["tests"][1]
+    c.put(f"/api/sessions/{sid}/tests/{t2['uid']}", json={"code": t2["code"]})  # unchanged code
+    c.post(f"/api/sessions/{sid}/tests/{t2['uid']}/fix/apply", json={"code": t2["code"] + "\nassert True"})
+    x = next(x for x in c.get(f"/api/sessions/{sid}").get_json()["session"]["tests"] if x["uid"] == t2["uid"])
+    assert x["origin"] == ai_origin and x["previous_code"] == t2["code"]
+    c.put(f"/api/sessions/{sid}/tests/{t2['uid']}", json={"code": "assert True"})
+    assert c.post(f"/api/sessions/{sid}/tests/{t2['uid']}/fix/undo").status_code == 400

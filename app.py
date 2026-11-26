@@ -191,6 +191,20 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
         s = load(sid)
         return jsonify(fix=generator.suggest_fix(s, provider(), uid))
 
+    @app.post("/api/sessions/<sid>/tests/<uid>/fix/apply")
+    def apply_fix(sid, uid):
+        s = load(sid)
+        generator.apply_fix(s, uid, body().get("code", ""))
+        store.save(s)
+        return jsonify(session=present(s))
+
+    @app.post("/api/sessions/<sid>/tests/<uid>/fix/undo")
+    def undo_fix(sid, uid):
+        s = load(sid)
+        generator.undo_fix(s, uid)
+        store.save(s)
+        return jsonify(session=present(s))
+
     @app.get("/api/sessions/<sid>/testfile")
     def testfile(sid):
         s = load(sid)
