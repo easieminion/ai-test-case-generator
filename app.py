@@ -13,7 +13,7 @@ from pathlib import Path
 
 from flask import Flask, Response, abort, jsonify, request, send_from_directory
 
-from testgen import bugreport, generator, renderer, runner
+from testgen import analyzer, bugreport, generator, renderer, runner
 from testgen.llm import LLMError, get_provider
 from testgen.models import CATEGORY_LABELS, LANGUAGES, Session
 from testgen.reporting import DEFAULT_FORMAT, FORMATS, build_report, charts, normalise_format
@@ -109,6 +109,12 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
         return jsonify(provider=provider().describe(), languages=list(LANGUAGES),
                        samples=list(SAMPLES.values()), formats=list(FORMATS),
                        default_format=DEFAULT_FORMAT)
+
+    # ------------------------------------------------------------ requirement analysis
+    @app.post("/api/analyze")
+    def analyze_requirements():
+        a = analyzer.analyze(body().get("requirements", ""), provider())
+        return jsonify(analysis=a.to_dict(), markdown=analyzer.to_markdown(a))
 
     # ------------------------------------------------------------ sessions
     @app.get("/api/sessions")
