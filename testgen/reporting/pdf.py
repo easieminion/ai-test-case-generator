@@ -125,7 +125,7 @@ def _footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("Sans", 7.5)
     canvas.setFillColor(INK_2)
-    canvas.drawString(0.7 * inch, 0.45 * inch, "AI Test Case Generator - Test Execution Report")
+    canvas.drawString(0.7 * inch, 0.45 * inch, "SpecProof - Test Execution Report")
     canvas.drawRightString(letter[0] - 0.7 * inch, 0.45 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -253,6 +253,6 @@ def build_pdf(run, session_id: str = "") -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter, leftMargin=0.7 * inch, rightMargin=0.7 * inch,
                             topMargin=0.7 * inch, bottomMargin=0.75 * inch,
-                            title=f"{ctx.title} - {ctx.subtitle}", author="AI Test Case Generator")
+                            title=f"{ctx.title} - {ctx.subtitle}", author="SpecProof")
     doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
     return buf.getvalue()

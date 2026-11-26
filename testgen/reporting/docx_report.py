@@ -127,7 +127,7 @@ def _picture(doc, png, width=6.4):
 
 def _page_number_footer(section):
     p = section.footer.paragraphs[0]
-    _text(p, "AI Test Case Generator - Test Execution Report    |    Page ", size=8,
+    _text(p, "SpecProof - Test Execution Report    |    Page ", size=8,
           color=RGBColor(0x52, 0x51, 0x4E))
     run = p.add_run()
     for kind, txt in (("begin", None), (None, "PAGE"), ("end", None)):
@@ -265,7 +265,7 @@ def build_docx(run, session_id: str = "") -> bytes:
     _code(doc, (run.log_tail.strip() or "(no output)").splitlines())
 
     doc.core_properties.title = f"{ctx.title} - {ctx.subtitle}"
-    doc.core_properties.author = "AI Test Case Generator"
+    doc.core_properties.author = "SpecProof"
     buf = io.BytesIO()
     doc.save(buf)
     return buf.getvalue()

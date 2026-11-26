@@ -1,10 +1,43 @@
-# AI Test Case Generator with Automated Execution
+# SpecProof: AI Test Case Generator with Automated Execution
 
-Paste requirements → an LLM writes the tests in **Python or JavaScript** → the tests run automatically with a **coverage report** → you get a **PDF** (or Word / HTML) report with charts.
+[![tests](https://github.com/easieminion/ai-test-case-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/easieminion/ai-test-case-generator/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+**Paste requirements. Get reviewed, executed tests with coverage and a PDF report.**
+
+An LLM drafts test cases in **Python (pytest) or JavaScript (node:test)**, ordered positive → negative → edge, each tied to a requirement and explained in a comment. You review and edit them, then the app runs them, measures coverage, and writes a **PDF, Word or HTML** report with charts.
+
+![Demo: load the sample, generate tests, run them with coverage, download the report](examples/demo.gif)
+
+In the demo, the sample password validator has a deliberate off-by-one bug. The generated edge-case test *"Exactly 64 characters is accepted"* catches it: 14 passed, 1 failed, 96.2% statement coverage.
+
+## Try it in 30 seconds (no API key needed)
+
+```bash
+git clone https://github.com/easieminion/ai-test-case-generator && cd ai-test-case-generator
+pip install -r requirements.txt
+python app.py                  # open http://127.0.0.1:5000, click Load sample → Generate tests → Run tests
+```
+
+Without `ANTHROPIC_API_KEY` the app runs in a clearly labelled **offline demo mode** that replays a canned suite for the bundled sample, so everything above works offline. Set the key to generate tests for your own requirements.
+
+## Why it's built this way (a QA view)
+
+- **A human stays in the loop.** AI can write wrong tests, so nothing runs until you have reviewed, edited, added or deleted tests.
+- **Traceability.** Every test names the requirement it covers, and the report lists them side by side.
+- **Real execution, not just generated text.** Tests run in a subprocess with a timeout; results are `passed`, `failed` or `error`, and one broken test never takes down the run.
+- **AI fixes are reviewed too.** A test that breaks with a syntax error gets a *Fix with AI* suggestion shown as a diff; nothing is saved until you apply it, and you can undo it.
+- **Evidence you can hand over.** Each run is snapshotted into a report with outcome charts, coverage, timings and failure details.
+
+<details>
+<summary>More screenshots</summary>
 
 ![Home](examples/ui-0-home.png)
 ![Review tests](examples/ui-1-review-tests.png)
 ![Results with inspection stamp and coverage](examples/ui-2-results-coverage.png)
+
+</details>
 
 Sample reports: [`examples/python/sample-report.pdf`](examples/python/sample-report.pdf) · [`examples/javascript/sample-report.pdf`](examples/javascript/sample-report.pdf)
 
@@ -20,7 +53,9 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
                                        report: choose PDF (default) / DOCX / HTML
 ```
 
-| Your requirement | How it is met |
+## Features
+
+| What you need | How the app handles it |
 |---|---|
 | User inputs requirements | Web UI textarea, `--requirements file`, or `$EDITOR` in the CLI |
 | Requirements sent to the LLM | `testgen/llm.py` calls the Anthropic Messages API with a forced tool call, so the answer is structured JSON, not scraped text |
@@ -34,7 +69,7 @@ requirements ──► LLM (tool-use → structured JSON) ──► tests, order
 | Report type, default PDF | Dropdown / `--format`; PDF if you do not choose |
 | Charts + detail | Pass/fail/error per category, coverage, per-test timing, failure details, requirement per test, code and test source in appendices |
 
-## Quick start
+## All commands
 
 ```bash
 pip install -r requirements.txt        # Node.js 22+ also needed for JavaScript tests
@@ -44,7 +79,8 @@ python cli.py                          # or the interactive CLI
 python cli.py --sample --yes           # one-shot, no prompts
 python cli.py -r reqs.md -l javascript -s mycode.js -f docx --yes --fail-on-test-failure   # CI style
 python cli.py -r reqs.md --analyze     # only check the requirements, print clarifying questions
-python -m pytest tests -q              # the project's own 59 tests
+python cli.py --sample --yes --bug-reports   # also write a bug report per real failure to reports/bugs/
+python -m pytest tests -q              # the project's own tests
 ```
 
 **Code under test.** Optionally paste/upload your code; it is imported as `solution`. If you leave it empty the LLM writes a reference implementation in the same call (the report says who wrote the code). Testing code the model also wrote proves less than testing your own, so supply your code for real work.
@@ -68,6 +104,17 @@ Click **Check requirements** (or run `python cli.py -r reqs.md --analyze`) to re
 Each finding has a severity (high, medium, low), a suggested fix, and a clarifying question. **Copy questions for the team** puts them on the clipboard as Markdown, grouped by requirement with contradictions first, ready for email, Slack or a JIRA ticket (or download `requirement-questions.md`). **Use this wording** replaces a requirement with the suggested rewrite.
 
 With an API key the check is done by the LLM (it also gets the rule findings as hints to confirm or drop). Without one it uses deterministic rules (`testgen/analyzer.py`), which catch the common cases but not meaning-level problems. The CLI exits with code 1 when a high-severity issue is found, so it can gate a CI job.
+
+## Bug reports for real failures
+
+When a test fails because the code under test is wrong (an assertion failed, or the code crashed), the results table shows **Create bug report** next to it. The report is ready to file in JIRA, Azure DevOps, GitHub, Linear or any other tracker:
+
+- title (for the tracker's Summary field) and a suggested severity with a reason
+- summary, environment (language, runner, run id, who wrote the code), the requirement it violates
+- **steps to reproduce** with the exact input values from the test, expected vs actual result
+- the failing test as it ran, a one-line re-run command, the error output and the code under test
+
+Copy the title or the whole report, switch between **Markdown** and **JIRA markup** (wiki syntax for JIRA Server/Data Center and the JIRA Cloud legacy editor; use Markdown for the new Cloud editor), or download it. Nothing is filed automatically. With an API key the LLM writes the title, summary, steps and severity; environment, test code and error output always come from the run, so they are never invented. Without a key (offline demo) the report is built from a template. Errors that point to a broken test (syntax errors, unknown names, a test file that did not load) get no button, because those need a test fix, not a ticket. CLI: `--bug-reports` writes a `.md` and `.jira.txt` per failure to `<output-dir>/bugs/`. API: `POST /api/sessions/<id>/bug-report` with `{"uid": "<test uid>"}` (optional `?run=<run id>`).
 
 ## Design notes
 
@@ -96,6 +143,10 @@ testgen/llm.py            providers (Anthropic, offline demo)   testgen/prompts.
 testgen/renderer.py       tests → file, ordering, validation    testgen/runner.py   run + coverage + summary
 testgen/runtime/          pytest plugin (tracer), node reporter testgen/reporting/  pdf, docx, html, charts
 testgen/analyzer.py       requirement check (rules + LLM), clarifying questions as Markdown
-testgen/repair.py         rule-based syntax fixes (demo mode)
-web/index.html            single-page UI                        tests/              59 tests
+testgen/repair.py         rule-based syntax fixes (demo mode)   testgen/bugreport.py bug reports for real failures
+web/index.html            single-page UI                        tests/              pytest suite
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).

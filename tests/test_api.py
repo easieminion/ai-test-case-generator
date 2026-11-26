@@ -91,7 +91,7 @@ def test_friendly_errors(c):
 
 def test_index_page_served(c):
     r = c.get("/", headers=H)
-    assert r.status_code == 200 and b"AI Test Case Generator" in r.data
+    assert r.status_code == 200 and b"SpecProof" in r.data
 
 
 def test_syntax_error_can_be_fixed_after_review(c):

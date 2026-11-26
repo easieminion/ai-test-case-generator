@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Test Case Generator</title>
+<title>SpecProof · AI Test Case Generator</title>
 <style>
 :root{
   --navy:#14213d;--navy-2:#1f3158;--brass:#b08d2e;--brass-d:#8a6c17;--brass-l:#e7d9a8;
@@ -121,6 +121,14 @@ tbody tr:nth-child(even) td{background:#f8f9fc}
 @keyframes s{to{transform:rotate(360deg)}}
 .hist a{cursor:pointer}
 
+/* ---------- bug report ---------- */
+.bug{border:1px solid var(--bad);border-top:3px solid var(--bad);background:#fffdfc;border-radius:3px;padding:14px 16px;margin:16px 0}
+.bug h3{margin:0 0 4px;font:400 21px var(--serif)}
+.bug .tabs{display:flex;gap:6px;margin:12px 0 6px}
+.bug .tabs button[aria-pressed=true]{background:var(--navy);color:#fff}
+.bug textarea{font:12.5px/1.5 var(--mono);min-height:320px}
+.bug .sev{font-weight:600;color:var(--bad)}
+
 @media (max-width:820px){
   .badge{margin-left:0}
   .sheet{grid-template-columns:1fr}.sheet>.num{border-right:0;margin:0 0 6px;font-size:46px}
@@ -159,7 +167,7 @@ tbody tr:nth-child(even) td{background:#f8f9fc}
 <header class="hero">
   <div class="hero-in">
     <div class="hero-top">
-      <span class="brand">AI Test Case Generator</span>
+      <span class="brand">SpecProof</span>
       <span id="badge" class="badge">Checking provider</span>
     </div>
     <h1>Requirements in. Tested, measured, reported.</h1>
@@ -438,7 +446,7 @@ function renderResults() {
   const undoable = t => s.tests.some(x => x.uid === t.uid && x.previous_code);
   const rows = run.tests.map(t => `<tr><td><b>${esc(t.label)}</b></td><td>${esc(s.category_labels[t.category])}</td><td>${esc(t.title)}${t.message ? `<pre style="margin-top:4px">${esc(t.message)}</pre>` : ""}
      ${fixable(t) ? `<div class="btns" style="margin-top:6px"><button class="sec sm" data-fix="${esc(t.uid)}">Fix with AI</button></div><div class="fixhost" data-for="${esc(t.uid)}"></div>` : ""}
-     ${undoable(t) ? `<div class="btns" style="margin-top:6px"><span class="small">AI fix applied.</span> <button class="sec sm" data-undo="${esc(t.uid)}" id="undo_${esc(t.uid)}">Undo AI fix</button></div>` : ""}</td>
+     ${undoable(t) ? `<div class="btns" style="margin-top:6px"><span class="small">AI fix applied.</span> <button class="sec sm" data-undo="${esc(t.uid)}" id="undo_${esc(t.uid)}">Undo AI fix</button></div>` : ""}${bugButton(t)}</td>
      <td><span class="st ${t.status}">${GLYPH[t.status] || ""} ${STATUS_TEXT[t.status] || esc(t.status)}</span></td><td>${t.duration_ms.toFixed(2)} ms</td></tr>`).join("");
   const q = `?run=${run.run_id}`, fresh = state.freshStamp; state.freshStamp = false;
   host.innerHTML = `
@@ -448,6 +456,7 @@ function renderResults() {
     <div class="charts"><img alt="Passed, failed and errored tests by category" src="/api/sessions/${s.id}/charts/categories.png${q}">
       ${run.coverage.length ? `<img alt="Statement coverage of the code under test" src="/api/sessions/${s.id}/charts/coverage.png${q}">` : ""}</div>
     <table><thead><tr><th>ID</th><th>Category</th><th>Test</th><th>Status</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>
+    <div id="bugPanel"></div>
     ${s.runs.length > 1 ? `<p class="small hist">${s.runs.length} runs recorded. The report uses the latest.</p>` : ""}`;
 }
 function diffHtml(diff) {
@@ -511,6 +520,61 @@ async function makeReport() {
     } catch (e) { note("#msg4", e.message); }
   });
 }
+
+// ------------------------------------------------------------------ bug reports (real failures only)
+function bugButton(t) {
+  return t.bug_reportable ? `<div style="margin-top:7px"><button class="sec sm" data-bug="${esc(t.uid)}">Create bug report</button></div>` : "";
+}
+const bug = { data: null, fmt: "markdown" };
+function bugText() { return bug.data ? bug.data[bug.fmt] : ""; }
+function renderBug() {
+  const d = bug.data, r = d.report, demo = state.config.provider.demo;
+  $("#bugPanel").innerHTML = `<div class="bug" role="region" aria-label="Bug report">
+    <h3>Bug report for ${esc(r.test_label)}</h3>
+    <div class="small">Ready to paste into JIRA, Azure DevOps, GitHub, Linear or any tracker. Nothing is filed for you.
+      ${r.generated_by === "ai" ? "Wording by the LLM; environment, test and error output come from the run." : "Written from a template" + (demo ? " (offline demo mode)." : ".")}</div>
+    <label>Title (paste into the tracker's Summary field)</label>
+    <div class="row"><input type="text" id="bugTitle" value="${esc(r.title)}" readonly><div style="flex:0 0 auto"><button class="sec" data-bugact="copytitle">Copy title</button></div></div>
+    <p class="small">Suggested severity: <span class="sev">${esc(r.severity)}</span>. ${esc(r.severity_reason)}</p>
+    <div class="tabs" role="group" aria-label="Format">
+      <button class="sec sm" data-bugfmt="markdown" aria-pressed="${bug.fmt === "markdown"}">Markdown</button>
+      <button class="sec sm" data-bugfmt="jira" aria-pressed="${bug.fmt === "jira"}">JIRA markup</button></div>
+    <textarea id="bugBody" readonly aria-label="Bug report text">${esc(bugText())}</textarea>
+    <div class="actions"><button data-bugact="copy">Copy report</button><button class="sec" data-bugact="download">Download</button>
+      <button class="sec" data-bugact="close">Close</button><span class="small" id="bugMsg" role="status"></span></div></div>`;
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) { const ta = $("#bugBody"); ta.value = text; ta.select(); return document.execCommand("copy"); }
+}
+async function openBug(btn, uid) {
+  const s = state.session, run = s.runs[s.runs.length - 1];
+  await withBusy(btn, "Writing report", async () => {
+    try {
+      bug.data = await j("POST", `/api/sessions/${s.id}/bug-report?run=${encodeURIComponent(run.run_id)}`, { uid, use_ai: true });
+      renderBug(); $("#bugPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) { note("#bugPanel", e.message); }
+  });
+}
+$("#results").addEventListener("click", async e => {
+  const open = e.target.closest("button[data-bug]");
+  if (open) { open.id = open.id || "bug_" + open.dataset.bug; return openBug("#" + open.id, open.dataset.bug); }
+  const f = e.target.closest("button[data-bugfmt]");
+  if (f) { bug.fmt = f.dataset.bugfmt; return renderBug(); }
+  const a = e.target.closest("button[data-bugact]"); if (!a || !bug.data) return;
+  const act = a.dataset.bugact;
+  if (act === "close") { bug.data = null; $("#bugPanel").innerHTML = ""; return; }
+  if (act === "copy" || act === "copytitle") {
+    const ok = await copyText(act === "copy" ? bugText() : bug.data.report.title);
+    $("#bugMsg").textContent = ok ? (act === "copy" ? "Report copied." : "Title copied.") : "Copy failed; select the text and copy it.";
+  }
+  if (act === "download") {
+    const name = bug.fmt === "jira" ? bug.data.filename.replace(/\.md$/, ".jira.txt") : bug.data.filename;
+    const url = URL.createObjectURL(new Blob([bugText()], { type: "text/plain;charset=utf-8" }));
+    const l = Object.assign(document.createElement("a"), { href: url, download: name });
+    document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+});
 
 function renderAll() { renderSteps(); renderTests(); renderResults(); }
 

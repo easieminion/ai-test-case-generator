@@ -13,7 +13,7 @@ from pathlib import Path
 
 from flask import Flask, Response, abort, jsonify, request, send_from_directory
 
-from testgen import analyzer, generator, renderer, runner
+from testgen import analyzer, bugreport, generator, renderer, runner
 from testgen.llm import LLMError, get_provider
 from testgen.models import CATEGORY_LABELS, LANGUAGES, Session
 from testgen.reporting import DEFAULT_FORMAT, FORMATS, build_report, charts, normalise_format
@@ -84,6 +84,8 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
         r = asdict(run)
         for big in ("code_source", "test_source", "requirements"):
             r.pop(big, None)
+        for slim, full in zip(r["tests"], run.tests):
+            slim["bug_reportable"] = bugreport.is_reportable(full)
         r["summary"] = _summary(run)
         for t in r["tests"]:
             t["syntax_error"] = t["status"] == "error" and renderer.is_syntax_error(t["message"])
@@ -249,6 +251,17 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
         return Response(data, mimetype=mime, headers={
             "Content-Disposition": f'attachment; filename="{name}"', "X-Report-Name": name})
 
+    @app.post("/api/sessions/<sid>/bug-report")
+    def bug_report(sid):
+        """Bug report for one failed test of a run (latest unless ?run=). Nothing is filed anywhere."""
+        b, s = body(), load(sid)
+        uid = str(b.get("uid", ""))
+        if not uid:
+            raise ValueError("Which test? Send its uid.")
+        run = _pick_run(s)
+        report = bugreport.build(s, run, uid, provider=provider(), use_ai=bool(b.get("use_ai", True)))
+        return jsonify(bugreport.export(s, run, report, include_source=bool(b.get("include_source", True))))
+
     @app.get("/api/sessions/<sid>/charts/<name>.png")
     def chart(sid, name):
         s = load(sid)
@@ -265,7 +278,7 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
 
 
 def main():
-    ap = argparse.ArgumentParser(description="AI Test Case Generator - web UI")
+    ap = argparse.ArgumentParser(description="SpecProof - web UI")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 5000)))
     ap.add_argument("--data-dir", default=None)
