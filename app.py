@@ -85,6 +85,8 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
         for big in ("code_source", "test_source", "requirements"):
             r.pop(big, None)
         r["summary"] = _summary(run)
+        for t in r["tests"]:
+            t["syntax_error"] = t["status"] == "error" and renderer.is_syntax_error(t["message"])
         return r
 
     def _summary(run) -> dict:
@@ -182,6 +184,12 @@ def create_app(data_dir: Path | None = None, allowed_hosts=("localhost", "127.0.
         b, s = body(), load(sid)
         t = generator.draft_test(s, provider(), b.get("category", "positive"), b.get("description", ""))
         return jsonify(test=t.__dict__)
+
+    @app.post("/api/sessions/<sid>/tests/<uid>/fix")
+    def fix(sid, uid):
+        """Preview an AI fix for a test with a syntax error. Apply it with PUT .../tests/<uid>."""
+        s = load(sid)
+        return jsonify(fix=generator.suggest_fix(s, provider(), uid))
 
     @app.get("/api/sessions/<sid>/testfile")
     def testfile(sid):

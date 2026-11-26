@@ -167,8 +167,20 @@ def _validate_javascript(tests: List[TestCase], node: str = "node") -> Dict[str,
     return json.loads(proc.stdout or "{}")
 
 
-def validate(session: Session) -> Dict[str, str]:
+def validate_tests(language: str, tests: List[TestCase]) -> Dict[str, str]:
     """Return {uid: error_message} for tests whose body does not even parse."""
-    if session.language == "python":
-        return _validate_python(session.tests)
-    return _validate_javascript(session.tests)
+    if language == "python":
+        return _validate_python(tests)
+    return _validate_javascript(tests)
+
+
+def validate(session: Session) -> Dict[str, str]:
+    return validate_tests(session.language, session.tests)
+
+
+SYNTAX_ERROR_PREFIXES = ("Invalid Python", "Invalid JavaScript")
+
+
+def is_syntax_error(message: str) -> bool:
+    """True for the messages `validate` produces, i.e. the test body does not parse."""
+    return (message or "").startswith(SYNTAX_ERROR_PREFIXES)

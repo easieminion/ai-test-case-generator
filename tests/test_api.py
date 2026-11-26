@@ -92,3 +92,26 @@ def test_friendly_errors(c):
 def test_index_page_served(c):
     r = c.get("/", headers=H)
     assert r.status_code == 200 and b"AI Test Case Generator" in r.data
+
+
+def test_syntax_error_can_be_fixed_after_review(c):
+    s = create(c)
+    sid, uid = s["id"], s["tests"][0]["uid"]
+    broken = s["tests"][0]["code"].rstrip()[:-1]          # drop the closing bracket
+    c.put(f"/api/sessions/{sid}/tests/{uid}", json={"code": broken})
+    run = c.post(f"/api/sessions/{sid}/run").get_json()["session"]["runs"][-1]
+    row = next(t for t in run["tests"] if t["uid"] == uid)
+    assert row["status"] == "error" and row["syntax_error"] is True
+    assert not any(t["syntax_error"] for t in run["tests"] if t["uid"] != uid)
+
+    fix = c.post(f"/api/sessions/{sid}/tests/{uid}/fix").get_json()["fix"]
+    assert fix["original"] == broken and fix["still_invalid"] == "" and "not AI" in fix["note"]
+    assert fix["diff"].startswith("--- current")
+    current = c.get(f"/api/sessions/{sid}").get_json()["session"]
+    assert next(t for t in current["tests"] if t["uid"] == uid)["code"] == broken   # preview only
+
+    c.put(f"/api/sessions/{sid}/tests/{uid}", json={"code": fix["code"]})
+    rerun = c.post(f"/api/sessions/{sid}/run").get_json()["session"]["runs"][-1]
+    assert next(t for t in rerun["tests"] if t["uid"] == uid)["status"] == "passed"
+    # a test that parses has nothing to fix
+    assert c.post(f"/api/sessions/{sid}/tests/{uid}/fix").status_code == 400

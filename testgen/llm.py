@@ -35,6 +35,12 @@ class SuiteDraft:
     warnings: List[str] = field(default_factory=list)
 
 
+@dataclass
+class FixDraft:
+    code: str
+    note: str = ""
+
+
 def _tests_from_payload(items: Any, warnings: List[str]) -> List[TestCase]:
     tests: List[TestCase] = []
     if not isinstance(items, list):
@@ -92,6 +98,17 @@ class LLMProvider:
         test.category = category
         test.origin = "user"
         return test
+
+    def fix_test(self, requirements: str, language: str, source_code: str, test: TestCase,
+                 error: str) -> FixDraft:
+        """Ask the model to repair a test body that does not parse. Nothing is applied here."""
+        user = prompts.build_fix_prompt(requirements, language, source_code, test.title,
+                                        test.explanation, test.code, error)
+        payload = self._call_tool(prompts.SYSTEM_PROMPT, user, prompts.FIX_TOOL, prompts.FIX_SCHEMA)
+        code = str(payload.get("code") or "").rstrip()
+        if not code.strip():
+            raise LLMError("The model did not return a fixed test.")
+        return FixDraft(code=code, note=str(payload.get("change_note") or "").strip())
 
 
 class AnthropicProvider(LLMProvider):
@@ -202,6 +219,15 @@ class OfflineDemoProvider(LLMProvider):
     def draft_test(self, requirements, language, source_code, category, description) -> TestCase:
         raise LLMError("AI drafting needs an API key (offline demo mode cannot write new tests). "
                        "You can still add a test by typing its code.")
+
+    def fix_test(self, requirements, language, source_code, test, error) -> FixDraft:
+        from .repair import quick_fix
+        found = quick_fix(test.code, language)
+        if not found:
+            raise LLMError("Offline demo mode could not fix this one with its simple rules. "
+                           "Set ANTHROPIC_API_KEY for an AI fix, or edit the test by hand.")
+        code, note = found
+        return FixDraft(code=code, note=f"Offline demo (rule-based, not AI): {note}.")
 
 
 def get_provider(preference: Optional[str] = None) -> LLMProvider:
