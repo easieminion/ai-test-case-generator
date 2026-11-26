@@ -134,7 +134,7 @@ def review_loop(s: Session, provider, store: SessionStore) -> None:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="AI test case generator with automated execution")
+    ap = argparse.ArgumentParser(description="SpecProof: AI test case generator with automated execution")
     ap.add_argument("-r", "--requirements", help="file with the requirements")
     ap.add_argument("--text", help="requirements given inline")
     ap.add_argument("--sample", action="store_true", help="use the bundled password-validator sample")

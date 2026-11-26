@@ -1,4 +1,4 @@
-# AI Test Case Generator with Automated Execution
+# SpecProof: AI Test Case Generator with Automated Execution
 
 [![tests](https://github.com/easieminion/ai-test-case-generator/actions/workflows/tests.yml/badge.svg)](https://github.com/easieminion/ai-test-case-generator/actions/workflows/tests.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
