@@ -139,6 +139,29 @@ tbody tr:nth-child(even) td{background:#f8f9fc}
 }
 @media (prefers-reduced-motion:reduce){.stamp.fresh,.spin{animation:none}html{scroll-behavior:auto}}
 </style>
+<style id="analyzer-css">
+/* ---------- requirement check (analyzer) ---------- */
+.an{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.an-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.an-head h3{font:400 22px var(--serif);margin:0}
+.an .kpis{margin:12px 0 14px}.an .kpi b{font-size:28px}
+.an .kpi.hi b{color:var(--bad)}.an .kpi.me b{color:var(--err)}.an .kpi.lo b{color:var(--slate)}
+.rq{border:1px solid var(--line);border-left:5px solid var(--ok);border-radius:2px;padding:11px 14px 12px;margin-bottom:9px;background:#fff}
+.rq.review{border-left-color:var(--brass)}.rq.needs_clarification{border-left-color:var(--bad)}
+.rq.conflict{border-left-color:var(--bad);background:var(--bad-bg)}
+.rq .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.rq .rid{font:400 20px var(--serif);color:var(--brass-d);min-width:2.5ch}
+.rq .txt{flex:1;min-width:200px}
+.sev{font-size:12px;font-weight:700;padding:1px 8px;border-radius:2px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.sev.high{background:var(--bad-bg);color:var(--bad)}.sev.medium{background:var(--err-bg);color:var(--err)}.sev.low{background:var(--wash);color:var(--slate)}
+.rq ul{margin:8px 0 0;padding-left:20px}.rq li{margin:4px 0}
+.rq .ex{font-family:var(--mono);font-size:12.5px;background:var(--wash);padding:0 4px;border-radius:2px}
+.rq .sug{color:var(--slate);font-size:13.5px}
+.rq .qs{margin-top:9px;padding:8px 12px;background:#f8f9fc;border:1px dashed #b6bdcb;border-radius:3px}
+.rq .qs b{font-size:13px}
+.rq .rw{margin-top:9px;font-size:13.5px}
+.an .okline{color:var(--ok);font-weight:600}
+</style>
 </head>
 <body>
 <header class="hero">
@@ -184,12 +207,14 @@ tbody tr:nth-child(even) td{background:#f8f9fc}
         <textarea id="src" rows="8" placeholder="Leave empty to let the AI write the code"></textarea>
       </details>
       <div class="actions">
+        <button class="sec" id="btnAnalyze" title="Check for vague, missing or contradictory requirements before generating tests">Check requirements</button>
         <button id="btnGenerate">Generate tests</button>
         <label class="chk" id="keepWrap" style="display:none"><input type="checkbox" id="keepUser" checked> Keep my manually added tests</label>
         <button class="sec" id="btnSaveReq" style="display:none">Save text only</button>
         <span class="small" id="sessionInfo"></span>
       </div>
       <div id="msg1"></div>
+      <div id="analysis"></div>
     </div>
   </section>
 
@@ -595,6 +620,88 @@ $("#tests").onclick = e => {
   } catch (e) { note("#globalMsg", "Cannot reach the server: " + e.message); }
   renderAll();
 })();
+</script>
+<script>
+// ------------------------------------------------------------------ requirement check (analyzer)
+const analyzer = { last: null, markdown: "" };
+const SEV_ORDER = { high: 0, medium: 1, low: 2 };
+function issueLi(i, labels) {
+  return `<li><span class="sev ${i.severity}">${esc(i.severity)}</span> <b>${esc(labels[i.type] || i.type)}.</b> ${esc(i.problem)}
+    ${i.excerpt ? `<div class="small">In: <span class="ex">${esc(i.excerpt)}</span></div>` : ""}
+    ${i.suggestion && i.type !== "contradiction" ? `<div class="sug">Fix: ${esc(i.suggestion)}</div>` : ""}</li>`;
+}
+function renderAnalysis() {
+  const a = analyzer.last, host = $("#analysis");
+  if (!a) { host.innerHTML = ""; return; }
+  const sm = a.summary, L = a.issue_labels;
+  const engine = a.engine === "ai" ? `AI review${a.model ? " / " + esc(a.model) : ""}` : "Rule-based check (offline)";
+  const conflicts = a.cross_issues.map(c => `<div class="rq conflict"><div class="top"><span class="rid">${esc(c.requirements.join(" + "))}</span>
+      <span class="txt"><b>Contradiction.</b> ${esc(c.problem)}</span><span class="sev ${c.severity}">${esc(c.severity)}</span></div>
+      ${c.suggestion ? `<div class="qs"><b>Ask:</b> ${esc(c.suggestion)}</div>` : ""}</div>`).join("");
+  const flagged = a.requirements.filter(r => r.issues.length || r.questions.length);
+  const inConflict = new Set(a.cross_issues.flatMap(c => c.requirements));
+  const clear = a.requirements.filter(r => !r.issues.length && !r.questions.length && !inConflict.has(r.id));
+  const cards = flagged.map(r => {
+    const issues = [...r.issues].sort((x, y) => SEV_ORDER[x.severity] - SEV_ORDER[y.severity]);
+    const worst = issues.length ? issues[0].severity : "";
+    const idx = a.requirements.indexOf(r);
+    return `<div class="rq ${r.status}"><div class="top"><span class="rid">${esc(r.id)}</span><span class="txt">${esc(r.text)}</span>
+        ${worst ? `<span class="sev ${worst}">${issues.length} ${issues.length === 1 ? "issue" : "issues"}</span>` : ""}</div>
+      ${issues.length ? `<ul>${issues.map(i => issueLi(i, L)).join("")}</ul>` : ""}
+      ${r.questions.length ? `<div class="qs"><b>Questions for the team</b><ul>${r.questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul></div>` : ""}
+      ${r.rewrite ? `<div class="rw"><b>Suggested wording:</b> ${esc(r.rewrite)}
+        <button class="sec sm" data-rewrite="${idx}" style="margin-left:6px">Use this wording</button></div>` : ""}</div>`;
+  }).join("");
+  const general = a.general_questions.length ? `<div class="rq review"><div class="top"><span class="rid">All</span><span class="txt"><b>General questions</b></span></div>
+      <div class="qs"><ul>${a.general_questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul></div></div>` : "";
+  host.innerHTML = `<div class="an" aria-live="polite">
+    <div class="an-head"><h3>Requirement check</h3><span class="pill">${engine}</span></div>
+    <div class="kpis">${kpi("Requirements", sm.requirements)}${kpi("Look clear", sm.clear, "good")}${kpi("High", sm.high, sm.high ? "hi" : "")}${kpi("Medium", sm.medium, sm.medium ? "me" : "")}${kpi("Low", sm.low, "lo")}${kpi("Contradictions", sm.contradictions, sm.contradictions ? "hi" : "")}</div>
+    ${(a.warnings || []).map(w => `<div class="msg warn">${esc(w)}</div>`).join("")}
+    <div class="actions" style="margin-top:0">
+      <button id="btnCopyQs">Copy questions for the team (Markdown)</button>
+      <button class="sec" id="btnDlQs">Download .md</button>
+      <span class="small">${sm.questions} ${sm.questions === 1 ? "question" : "questions"}, ready to paste into email, Slack or JIRA.</span>
+    </div><div id="anMsg"></div>
+    ${conflicts}${cards}${general}
+    ${clear.length ? `<p class="small okline">${clear.length === a.requirements.length ? "Every requirement" : esc(clear.map(r => r.id).join(", "))} ${clear.length === 1 && clear.length !== a.requirements.length ? "looks" : "look"} specific and testable.</p>` : ""}
+  </div>`;
+  $("#btnCopyQs").onclick = copyQuestions;
+  $("#btnDlQs").onclick = () => {
+    const url = URL.createObjectURL(new Blob([analyzer.markdown], { type: "text/markdown" }));
+    const el = Object.assign(document.createElement("a"), { href: url, download: "requirement-questions.md" });
+    document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  host.querySelectorAll("button[data-rewrite]").forEach(b => b.onclick = () => useRewrite(+b.dataset.rewrite));
+}
+async function copyQuestions() {
+  try { await navigator.clipboard.writeText(analyzer.markdown); note("#anMsg", "Copied. Paste it into your email, Slack or JIRA ticket.", "ok"); }
+  catch (e) {
+    const ta = Object.assign(document.createElement("textarea"), { value: analyzer.markdown });
+    ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand && document.execCommand("copy"); ta.remove();
+    note("#anMsg", ok ? "Copied. Paste it into your email, Slack or JIRA ticket." : "Copy is blocked in this browser. Use Download .md instead.", ok ? "ok" : "err");
+  }
+}
+function useRewrite(i) {
+  const r = analyzer.last.requirements[i], box = $("#req");
+  // the requirement may wrap over several lines in the box, so match any whitespace between words
+  const rx = new RegExp(r.text.trim().split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+"));
+  if (!rx.test(box.value)) { note("#anMsg", `Could not find the text of ${r.id} in the box. Edit it by hand.`); return; }
+  box.value = box.value.replace(rx, () => r.rewrite);
+  note("#anMsg", `${r.id} updated in the requirements box. Fill in any [placeholders], then check again.`, "ok");
+}
+async function analyzeRequirements() {
+  note("#msg1", "");
+  await withBusy("#btnAnalyze", "Checking", async () => {
+    try {
+      const d = await j("POST", "/api/analyze", { requirements: $("#req").value });
+      analyzer.last = d.analysis; analyzer.markdown = d.markdown; renderAnalysis();
+      $("#analysis").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) { note("#msg1", e.message); }
+  });
+}
+$("#btnAnalyze").onclick = analyzeRequirements;
 </script>
 </body>
 </html>
