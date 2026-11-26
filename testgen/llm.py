@@ -93,6 +93,14 @@ class LLMProvider:
         test.origin = "user"
         return test
 
+    def write_bug_report(self, context: Dict[str, str]) -> Dict[str, Any]:
+        """Wording for a bug report (title, summary, steps, expected/actual, severity)."""
+        payload = self._call_tool(prompts.BUG_SYSTEM_PROMPT, prompts.build_bug_prompt(context),
+                                  prompts.BUG_TOOL, prompts.BUG_SCHEMA)
+        if not isinstance(payload, dict) or not payload.get("title"):
+            raise LLMError("The model did not return a usable bug report.")
+        return payload
+
 
 class AnthropicProvider(LLMProvider):
     name = "anthropic"
@@ -202,6 +210,9 @@ class OfflineDemoProvider(LLMProvider):
     def draft_test(self, requirements, language, source_code, category, description) -> TestCase:
         raise LLMError("AI drafting needs an API key (offline demo mode cannot write new tests). "
                        "You can still add a test by typing its code.")
+
+    def write_bug_report(self, context):
+        raise LLMError("offline demo mode has no AI")
 
 
 def get_provider(preference: Optional[str] = None) -> LLMProvider:

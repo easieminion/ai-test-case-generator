@@ -147,3 +147,18 @@ def test_demo_provider_refuses_unknown_requirements_and_filters_removed_ones():
     full = SAMPLES["password_validator"]["requirements"]
     reduced = "\n".join(l for l in full.splitlines() if not l.startswith("R6"))
     assert len(p.generate_suite(reduced, "python", "", 4).tests) < len(p.generate_suite(full, "python", "", 4).tests)
+
+
+def test_bug_report_wording_uses_forced_tool_and_sends_the_failure(stub):
+    reply = {"title": "64-char password rejected", "summary": "s", "steps": ["a"], "expected": "e",
+             "actual": "a", "severity": "High", "severity_reason": "r"}
+    s = stub([tool_reply("submit_bug_report", reply)])
+    out = AnthropicProvider("k", base_url=s.url).write_bug_report(
+        {"language": "python", "requirements": "R1. len 8-64", "code_under_test": "def f(): pass",
+         "test": "def test_e3(): ...", "error_output": "AssertionError: ['too_long']",
+         "category": "Edge case", "requirement": "R1"})
+    body = s.requests[0]["body"]
+    assert body["tool_choice"] == {"type": "tool", "name": "submit_bug_report"}
+    assert "['too_long']" in body["messages"][0]["content"] and out["title"].startswith("64-char")
+    with pytest.raises(LLMError):
+        OfflineDemoProvider().write_bug_report({})

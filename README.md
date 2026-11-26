@@ -42,12 +42,24 @@ python app.py                          # web UI on http://127.0.0.1:5000
 python cli.py                          # or the interactive CLI
 python cli.py --sample --yes           # one-shot, no prompts
 python cli.py -r reqs.md -l javascript -s mycode.js -f docx --yes --fail-on-test-failure   # CI style
-python -m pytest tests -q              # the project's own 40 tests
+python cli.py --sample --yes --bug-reports   # also write a bug report per real failure to reports/bugs/
+python -m pytest tests -q              # the project's own 51 tests
 ```
 
 **Code under test.** Optionally paste/upload your code; it is imported as `solution`. If you leave it empty the LLM writes a reference implementation in the same call (the report says who wrote the code). Testing code the model also wrote proves less than testing your own, so supply your code for real work.
 
 **No API key?** The app falls back to an *offline demo provider* that replays a canned suite for the bundled password-validator sample. It is clearly labelled in the UI and in every report. The sample implementation contains a deliberate off-by-one bug, so the report shows a real failing edge case.
+
+## Bug reports for real failures
+
+When a test fails because the code under test is wrong (an assertion failed, or the code crashed), the results table shows **Create bug report** next to it. The report is ready to file in JIRA, Azure DevOps, GitHub, Linear or any other tracker:
+
+- title (for the tracker's Summary field) and a suggested severity with a reason
+- summary, environment (language, runner, run id, who wrote the code), the requirement it violates
+- **steps to reproduce** with the exact input values from the test, expected vs actual result
+- the failing test as it ran, a one-line re-run command, the error output and the code under test
+
+Copy the title or the whole report, switch between **Markdown** and **JIRA markup** (wiki syntax for JIRA Server/Data Center and the JIRA Cloud legacy editor; use Markdown for the new Cloud editor), or download it. Nothing is filed automatically. With an API key the LLM writes the title, summary, steps and severity; environment, test code and error output always come from the run, so they are never invented. Without a key (offline demo) the report is built from a template. Errors that point to a broken test (syntax errors, unknown names, a test file that did not load) get no button, because those need a test fix, not a ticket. CLI: `--bug-reports` writes a `.md` and `.jira.txt` per failure to `<output-dir>/bugs/`. API: `POST /api/sessions/<id>/bug-report` with `{"uid": "<test uid>"}` (optional `?run=<run id>`).
 
 ## Design notes
 
@@ -75,5 +87,6 @@ app.py, cli.py            web UI + API, command line
 testgen/llm.py            providers (Anthropic, offline demo)   testgen/prompts.py  prompt + tool schema
 testgen/renderer.py       tests → file, ordering, validation    testgen/runner.py   run + coverage + summary
 testgen/runtime/          pytest plugin (tracer), node reporter testgen/reporting/  pdf, docx, html, charts
-web/index.html            single-page UI                        tests/              40 tests
+testgen/bugreport.py      bug reports for real failures         web/index.html      single-page UI
+tests/                    51 tests
 ```
